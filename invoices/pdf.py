@@ -114,3 +114,25 @@ def _styled_table(data):
         ("TOPPADDING", (0, 0), (-1, 0), 8),
     ]))
     return table
+
+# invoices/pdf.py
+from io import BytesIO
+from reportlab.lib.pagesizes import LETTER
+from reportlab.pdfgen import canvas
+
+def render_invoice_pdf(invoice):
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=LETTER)
+
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, 750, f"Invoice #{invoice.invoice_number}")
+
+    p.setFont("Helvetica", 10)
+    p.drawString(50, 720, f"Customer: {invoice.customer.first_name} {invoice.customer.last_name}")
+    p.drawString(50, 700, f"Total: ${invoice.amount}")
+
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+    return buffer.getvalue()

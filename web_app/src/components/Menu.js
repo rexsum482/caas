@@ -66,10 +66,15 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
               <Menu.Item key="home">
                 <a href="/">Home</a>
               </Menu.Item>
-                { isAdmin ?
+                { isAdmin ? 
+                <>
                 <Menu.Item key="customers">
                     <a href="/customers">Customers</a>
                 </Menu.Item>
+                <Menu.Item key="invoices">
+                    <a href="/invoices">Invoices</a>
+                </Menu.Item>
+                </>
                 :
                 <Menu.Item key="contact">
                     <a href="/contact">Contact</a>

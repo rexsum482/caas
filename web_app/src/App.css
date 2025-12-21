@@ -36,3 +36,10 @@
     transform: rotate(360deg);
   }
 }
+.ant-table-tbody > tr {
+  cursor: pointer;
+}
+
+.ant-table-tbody > tr:hover {
+  background: #f5f7fa;
+}

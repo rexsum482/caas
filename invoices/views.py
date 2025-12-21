@@ -57,14 +57,39 @@ class PaymentViewSet(viewsets.ModelViewSet):
         payment = serializer.save()
         payment.apply_to_invoice()
 
-from .permissions import IsInvoiceOwner
+from rest_framework import viewsets, permissions
+from django.http import HttpResponse, Http404
+from .models import Invoice
+from .serializers import InvoiceSerializer
+from .pdf import render_invoice_pdf  # <-- your PDF generator
 
 class CustomerInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Customer-facing invoice access.
+    /api/customer-invoices/<id>/ returns PDF
+    """
     serializer_class = InvoiceSerializer
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated, IsInvoiceOwner]
+    permission_classes = [permissions.AllowAny]
+    queryset = Invoice.objects.all()
 
-    def get_queryset(self):
-        return Invoice.objects.filter(
-            customer__email=self.request.user.email
+    def retrieve(self, request, *args, **kwargs):
+        invoice_id = kwargs.get("pk")
+
+        try:
+            invoice = Invoice.objects.get(pk=invoice_id)
+        except Invoice.DoesNotExist:
+            raise Http404("Invoice not found")
+
+        # OPTIONAL: lock invoice to customer email if provided
+        email = request.query_params.get("email")
+        if email and invoice.customer.email.lower() != email.lower():
+            raise Http404("Invoice not found")
+
+        # Generate PDF
+        pdf = render_invoice_pdf(invoice)
+
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'inline; filename="invoice_{invoice.invoice_number}.pdf"'
         )
+        return response

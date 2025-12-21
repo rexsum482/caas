@@ -18,6 +18,9 @@ class Invoice(models.Model):
     issue_date = models.DateField(auto_now_add=True)
     due_date = models.DateField(blank=True, null=True)
     paid = models.BooleanField(default=False)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
 
     def __str__(self):
         return f"Invoice {self.invoice_number} - {self.customer}"
@@ -67,6 +70,9 @@ class Invoice(models.Model):
             labor.total_price() for labor in self.labor_items.all()
         )
         self.amount = Decimal(parts_total) + Decimal(labor_total)
+        subtotal = parts_total + labor_total
+        tax = subtotal * (self.tax_rate / Decimal("100"))
+        self.amount = subtotal + tax - self.discount
         self.save(update_fields=["amount"])
 
     def save(self, *args, **kwargs):
@@ -78,12 +84,13 @@ class Part(models.Model):
     description = models.CharField(max_length=255)
     quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    position = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"[Part] {self.description} for Invoice {self.invoice.invoice_number}"
     
     class Meta:
-        ordering = ['id']
+        ordering = ['position']
         verbose_name = "Part"
         verbose_name_plural = "Parts"
         indexes = [
@@ -107,12 +114,13 @@ class Labor(models.Model):
     description = models.CharField(max_length=255)
     hours = models.DecimalField(max_digits=5, decimal_places=2)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2)
+    position = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"[Labor] {self.description} for Invoice {self.invoice.invoice_number}"
     
     class Meta:
-        ordering = ['id']
+        ordering = ['position']
         verbose_name = "Labor"
         verbose_name_plural = "Labor Items"
         indexes = [

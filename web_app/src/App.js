@@ -19,6 +19,8 @@ import ContactUs from "./pages/Contact";
 import { Customers } from "./components/Customers";
 import { Customer } from "./pages/Customer";
 import { AddCustomer } from "./pages/AddCustomer";
+import Invoice from "./pages/Invoice";
+import Invoices from "./components/Invoices";
 
 const { Content } = Layout;
 
@@ -131,6 +133,8 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
     active = "login";
   } else if (location.pathname.startsWith("/signup")) {
     active = "signup";
+  } else if (location.pathname.startsWith("/invoices")) {
+    active = "invoices";
   }
 
   return (
@@ -160,6 +164,8 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             <Route path="/customers/add" element={<AddCustomer />} />
             <Route path="/customers/:id" element={<Customer />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/invoices/:id" element={<Invoice />} />
+            <Route path="/invoices" element={<Invoices />} />
 
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" />} />

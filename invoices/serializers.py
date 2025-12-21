@@ -13,6 +13,7 @@ class PartSerializer(serializers.ModelSerializer):
             "quantity",
             "unit_price",
             "total_price",
+            'position',
         ]
         read_only_fields = ["id", "total_price"]
 
@@ -31,6 +32,7 @@ class LaborSerializer(serializers.ModelSerializer):
             "hours",
             "hourly_rate",
             "total_price",
+            'position',
         ]
         read_only_fields = ["id", "total_price"]
 
@@ -38,6 +40,15 @@ class LaborSerializer(serializers.ModelSerializer):
         return obj.total_price()
 
 class InvoiceSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(
+        source="customer.__str__", read_only=True
+    )
+    customer_city = serializers.CharField(
+        source="customer.city", read_only=True
+    )
+    customer_state = serializers.CharField(
+        source="customer.state", read_only=True
+    )    
     parts = PartSerializer(source="line_items", many=True, read_only=True)
     labor = LaborSerializer(source="labor_items", many=True, read_only=True)
     days_until_due = serializers.SerializerMethodField()
@@ -57,6 +68,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "is_overdue",
             "parts",
             "labor",
+            "customer_name",
+            "customer_city",
+            "customer_state",
         ]
         read_only_fields = [
             "id",

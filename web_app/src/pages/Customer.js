@@ -18,6 +18,7 @@ import {
 import { PlusOutlined } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
 const API = "/api/customers/";
@@ -45,6 +46,7 @@ export function Customer() {
   const [invoices, setInvoices] = useState([]);
   const [invoiceModal, setInvoiceModal] = useState(false);
   const [invoiceForm] = Form.useForm();
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios
@@ -158,21 +160,26 @@ export function Customer() {
     </Row>
 
     <Table
-      dataSource={invoices}
-      rowKey="id"
-      style={{ marginTop: 16 }}
-      columns={[
+    dataSource={invoices}
+    rowKey="id"
+    style={{ marginTop: 16, cursor: "pointer" }}
+    onRow={(record) => ({
+        onClick: () => {
+        navigate(`/invoices/${record.id}`);
+        },
+    })}
+    columns={[
         { title: "Invoice #", dataIndex: "invoice_number" },
         { title: "Issued", dataIndex: "issue_date" },
         { title: "Due", dataIndex: "due_date", render: v => v || "—" },
         { title: "Amount", dataIndex: "amount" },
         {
-          title: "Status",
-          dataIndex: "paid",
-          render: paid =>
+        title: "Status",
+        dataIndex: "paid",
+        render: paid =>
             paid ? <Tag color="green">Paid</Tag> : <Tag color="red">Unpaid</Tag>,
         },
-      ]}
+    ]}
     />
 
     </Card>
