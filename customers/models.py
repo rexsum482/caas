@@ -64,4 +64,4 @@ class Customer(models.Model):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     email = models.EmailField(unique=True)
     def __str__(self):
-        return f"{self.first_name} {self.last_name} - {self.email}"
+        return f"{self.first_name} {self.last_name}"

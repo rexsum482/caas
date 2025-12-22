@@ -20,9 +20,21 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
   };
 
   const getSelectedKey = () => {
-    if (location.pathname === "/") return "home";
-    return location.pathname.replace("/", "") || "home";
-  };
+  let active = "";
+  if (location.pathname === "/" || location.pathname === "/home") {
+    return "home";
+  } else if (location.pathname.startsWith("/contact")) {
+    return "contact";
+  } else if (location.pathname.startsWith("/customers")) {
+    return "customers";
+  } else if (location.pathname.startsWith("/login")) {
+    return "login";
+  } else if (location.pathname.startsWith("/signup")) {
+    return "signup";
+  } else if (location.pathname.startsWith("/invoices")) {
+    return "invoices";
+  }
+}
 
   return (
     <>

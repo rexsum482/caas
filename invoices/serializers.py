@@ -71,12 +71,13 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "customer_name",
             "customer_city",
             "customer_state",
+            "tax_rate",
+            "discount",
         ]
         read_only_fields = [
             "id",
             "invoice_number",
             "issue_date",
-            "amount",
             "days_until_due",
             "is_overdue",
             "parts",

@@ -1,21 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Card,
-  Table,
   Button,
-  Input,
-  InputNumber,
   DatePicker,
   Space,
   Divider,
   Typography,
   message,
-  Popconfirm,
   Tag,
 } from "antd";
 import {
-  PlusOutlined,
-  DeleteOutlined,
   FilePdfOutlined,
   MailOutlined,
   LinkOutlined,
@@ -23,17 +17,18 @@ import {
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
-import {
-  DndContext,
-  closestCenter
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy
-} from "@dnd-kit/sortable";
+import PartsTable from "../components/invoice/PartsTable";
+import LaborTable from "../components/invoice/LaborTable";
+import AddPartRow from "../components/invoice/AddPartRow";
+import AddLaborRow from "../components/invoice/AddLaborRow";
+import InvoiceAdjustments from "../components/invoice/InvoiceAdjustments";
 
 const { Title, Text } = Typography;
 const API = "/api";
+const COL_DESC_WIDTH = 460;
+const COL_QTY_WIDTH = 80;
+const COL_PRICE_WIDTH = 120;
+const COL_ACTION_WIDTH = 80;
 
 export default function Invoice() {
 
@@ -68,23 +63,35 @@ export default function Invoice() {
 
   /* ---------- PARTS ---------- */
 
-  const addPart = async () => {
-    await axios.post(
-      `${API}/parts/`,
-      { invoice: id, description: "", quantity: 1, unit_price: 0 },
-      { headers }
-    );
-    fetchInvoice();
-  };
+const addPart = async (part) => {
+  await axios.post(
+    `${API}/parts/`,
+    {
+      invoice: id,
+      description: part.description,
+      quantity: part.quantity,
+      unit_price: part.unit_price,
+    },
+    { headers }
+  );
 
-  const updatePart = async (partId, field, value) => {
-    await axios.patch(
-      `${API}/parts/${partId}/`,
-      { [field]: value },
-      { headers }
-    );
-    fetchInvoice();
-  };
+  setNewPart({ description: "", quantity: 1, unit_price: 0 });
+  fetchInvoice();
+};
+
+const debouncedPartSave = useDebounce((id, field, value) => {
+  axios.patch(`${API}/parts/${id}/`, { [field]: value }, { headers });
+});
+const updatePart = (partId, field, value) => {
+  setInvoice(prev => ({
+    ...prev,
+    parts: prev.parts.map(p =>
+      p.id === partId ? { ...p, [field]: value } : p
+    ),
+  }));
+
+  debouncedPartSave(partId, field, value);
+};
 
   const deletePart = async (partId) => {
     await axios.delete(`${API}/parts/${partId}/`, { headers });
@@ -93,14 +100,21 @@ export default function Invoice() {
 
   /* ---------- LABOR ---------- */
 
-  const addLabor = async () => {
-    await axios.post(
-      `${API}/labor/`,
-      { invoice: id, description: "", hours: 1, hourly_rate: 0 },
-      { headers }
-    );
-    fetchInvoice();
-  };
+const addLabor = async (labor) => {
+  await axios.post(
+    `${API}/labor/`,
+    {
+      invoice: id,
+      description: labor.description,
+      hours: labor.hours,
+      hourly_rate: labor.hourly_rate,
+    },
+    { headers }
+  );
+
+  setNewLabor({ description: "", hours: 1, hourly_rate: 0 });
+  fetchInvoice();
+};
 
   const updateLabor = async (laborId, field, value) => {
     await axios.patch(
@@ -117,18 +131,44 @@ export default function Invoice() {
   };
 
   /* ---------- INVOICE ACTIONS ---------- */
+function useDebounce(fn, delay = 500) {
+  const timeout = useRef();
 
-  const updateInvoice = async (field, value) => {
-    await axios.patch(
-      `${API}/invoices/${id}/`,
-      { [field]: value },
-      { headers }
-    );
-    fetchInvoice();
+  return (...args) => {
+    clearTimeout(timeout.current);
+    timeout.current = setTimeout(() => fn(...args), delay);
   };
+}
+const debouncedInvoiceSave = useDebounce(async (field, value) => {
+  await axios.patch(
+    `${API}/invoices/${id}/`,
+    { [field]: value },
+    { headers }
+  );
+
+  // fetch updated amount only
+  const res = await axios.get(`${API}/invoices/${id}/`, { headers });
+
+  setInvoice(prev => ({
+    ...prev,
+    amount: res.data.amount,
+    tax_rate: res.data.tax_rate,
+    discount: res.data.discount,
+  }));
+});
+
+const updateInvoice = (field, value) => {
+  setInvoice(prev => ({
+    ...prev,
+    [field]: value,
+  }));
+
+  debouncedInvoiceSave(field, value);
+};
+
 
   const openPDF = () => {
-    window.open(`${API}/invoices/${id}/pdf/`, "_blank");
+    window.open(`${API}/customer-invoices/${id}/`, "_blank");
   };
 
   const sendEmail = async () => {
@@ -170,240 +210,69 @@ export default function Invoice() {
 
         {/* ---------- PARTS ---------- */}
         <Title level={4}>Parts</Title>
-        <DndContext
-        collisionDetection={closestCenter}
-        onDragEnd={async ({ active, over }) => {
-            if (!over || active.id === over.id) return;
-
-            const items = [...invoice.parts];
-            const oldIndex = items.findIndex(i => i.id === active.id);
-            const newIndex = items.findIndex(i => i.id === over.id);
-
-            const reordered = arrayMove(items, oldIndex, newIndex);
-
-            await Promise.all(
-            reordered.map((item, idx) =>
-                axios.patch(`${API}/parts/${item.id}/`, { position: idx }, { headers })
-            )
-            );
-
-            fetchInvoice();
-        }}
-        >
-        <SortableContext
-            items={invoice.parts.map(p => p.id)}
-            strategy={verticalListSortingStrategy}
-        >
-        <Table
-        dataSource={invoice.parts}
-        rowKey="id"
-        pagination={false}
-        columns={[{
-            title: "Part Number / Description",
-            render: (_, p) => (
-                <Input
-                    value={p.description}
-                    onChange={(e) =>
-                        updatePart(p.id, "description", e.target.value)
-                    }
-                />
-            ),
-        },
-        {
-            title: "Qty",
-            width: 80,
-            render: (_, p) => (
-                <InputNumber
-                    min={1}
-                    value={p.quantity}
-                    onChange={(v) => updatePart(p.id, "quantity", v)}
-                />
-            ),
-        },
-        {
-            title: "Unit Price",
-            render: (_, p) => (
-                <InputNumber
-                    min={0}
-                    value={p.unit_price}
-                    onChange={(v) => updatePart(p.id, "unit_price", v)}
-                />
-            ),
-        },
-        { title: "Total", dataIndex: "total_price" },
-        {
-            title: "",
-            width: 40,
-            render: (_, p) => (
-                <Popconfirm 
-                    title="Delete part?" 
-                    onConfirm={() => deletePart(p.id)}>
-                        <DeleteOutlined style={{ color: "red" }} />
-                </Popconfirm>
-            ),
-        },
-        ]}
-    />
-        </SortableContext>
-        </DndContext>
+<PartsTable
+  parts={invoice.parts}
+  onUpdate={updatePart}
+  onDelete={deletePart}
+  API={API}
+  arrayMove={arrayMove}
+  axios={axios}
+  fetchInvoice={fetchInvoice}
+  headers={headers}
+  invoice={invoice}
+  COL_ACTION_WIDTH={COL_ACTION_WIDTH}
+  COL_DESC_WIDTH={COL_DESC_WIDTH}
+  COL_PRICE_WIDTH={COL_PRICE_WIDTH}
+  COL_QTY_WIDTH={COL_QTY_WIDTH}
+/>
         {/* Inline new part row */}
-        <Space style={{ marginTop: 8 }}>
-        <Input
-            placeholder="Part Number / Description"
-            value={newPart.description}
-            onChange={(e) =>
-            setNewPart({ ...newPart, description: e.target.value })
-            }
-        />
-        <InputNumber
-            min={1}
-            value={newPart.quantity}
-            onChange={(v) => setNewPart({ ...newPart, quantity: v })}
-        />
-        <InputNumber
-            min={0}
-            value={newPart.unit_price}
-            onChange={(v) => setNewPart({ ...newPart, unit_price: v })}
-        />
-        <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={async () => {
-            if (!newPart.description) return message.warning("Description required");
-            await axios.post(`${API}/parts/`, { invoice: id, ...newPart }, { headers });
-            setNewPart({ description: "", quantity: 1, unit_price: 0 });
-            fetchInvoice();
-            }}
-        >
-            Add
-        </Button>
-        </Space>
+<AddPartRow
+  value={newPart}
+  onChange={setNewPart}
+  onAdd={() => addPart(newPart)}
+  COL_ACTION_WIDTH={COL_ACTION_WIDTH}
+  COL_DESC_WIDTH={COL_DESC_WIDTH}
+  COL_PRICE_WIDTH={COL_PRICE_WIDTH}
+  COL_QTY_WIDTH={COL_QTY_WIDTH}
+/>
 
 
         <Divider />
 
         {/* ---------- LABOR ---------- */}
         <Title level={4}>Labor</Title>
-        <DndContext
-        collisionDetection={closestCenter}
-        onDragEnd={async ({ active, over }) => {
-            if (!over || active.id === over.id) return;
+<LaborTable
+  labor={invoice.labor}
+  onUpdate={updateLabor}
+  onDelete={deleteLabor}
+  API={API}
+  arrayMove={arrayMove}
+  axios={axios}
+  fetchInvoice={fetchInvoice}
+  headers={headers}
+  invoice={invoice}
+  COL_ACTION_WIDTH={COL_ACTION_WIDTH}
+  COL_DESC_WIDTH={COL_DESC_WIDTH}
+  COL_PRICE_WIDTH={COL_PRICE_WIDTH}
+  COL_QTY_WIDTH={COL_QTY_WIDTH}
+/>
 
-            const items = [...invoice.parts];
-            const oldIndex = items.findIndex(i => i.id === active.id);
-            const newIndex = items.findIndex(i => i.id === over.id);
-
-            const reordered = arrayMove(items, oldIndex, newIndex);
-
-            await Promise.all(
-            reordered.map((item, idx) =>
-                axios.patch(`${API}/parts/${item.id}/`, { position: idx }, { headers })
-            )
-            );
-
-            fetchInvoice();
-        }}
-        >
-        <SortableContext
-            items={invoice.parts.map(p => p.id)}
-            strategy={verticalListSortingStrategy}
-        >
-        <Table
-        dataSource={invoice.labor}
-        rowKey="id"
-        pagination={false}
-        columns={[
-            {
-            title: "Description",
-            render: (_, l) => (
-                <Input
-                value={l.description}
-                onChange={(e) =>
-                    updateLabor(l.id, "description", e.target.value)
-                }
-                />
-            ),
-            },
-            {
-            title: "Hours",
-            render: (_, l) => (
-                <InputNumber
-                min={0}
-                value={l.hours}
-                onChange={(v) => updateLabor(l.id, "hours", v)}
-                />
-            ),
-            },
-            {
-            title: "Rate",
-            render: (_, l) => (
-                <InputNumber
-                min={0}
-                value={l.hourly_rate}
-                onChange={(v) => updateLabor(l.id, "hourly_rate", v)}
-                />
-            ),
-            },
-            { title: "Total", dataIndex: "total_price" },
-            {
-            title: "",
-            width: 40,
-            render: (_, l) => (
-                <Popconfirm title="Delete labor?" onConfirm={() => deleteLabor(l.id)}>
-                <DeleteOutlined style={{ color: "red" }} />
-                </Popconfirm>
-            ),
-            },
-        ]}
-        />
-        </SortableContext>
-        </DndContext>
-        <Space style={{ marginTop: 8 }}>
-        <Input
-            placeholder="Description"
-            value={newLabor.description}
-            onChange={(e) =>
-            setNewLabor({ ...newLabor, description: e.target.value })
-            }
-        />
-        <InputNumber
-            min={0}
-            value={newLabor.hours}
-            onChange={(v) => setNewLabor({ ...newLabor, hours: v })}
-        />
-        <InputNumber
-            min={0}
-            value={newLabor.hourly_rate}
-            onChange={(v) => setNewLabor({ ...newLabor, hourly_rate: v })}
-        />
-        <Button
-            icon={<PlusOutlined />}
-            type="primary"
-            onClick={async () => {
-            if (!newLabor.description) return message.warning("Description required");
-            await axios.post(`${API}/labor/`, { invoice: id, ...newLabor }, { headers });
-            setNewLabor({ description: "", hours: 1, hourly_rate: 0 });
-            fetchInvoice();
-            }}
-        >
-            Add
-        </Button>
-        </Space>
+<AddLaborRow
+  value={newLabor}
+  onChange={setNewLabor}
+  onAdd={() => addLabor(newLabor)}
+  COL_ACTION_WIDTH={COL_ACTION_WIDTH}
+  COL_DESC_WIDTH={COL_DESC_WIDTH}
+  COL_PRICE_WIDTH={COL_PRICE_WIDTH}
+  COL_QTY_WIDTH={COL_QTY_WIDTH}
+/>
         <Title level={4}>Adjustments</Title>
 
-        <Space>
-        <Text>Tax %</Text>
-        <InputNumber
-            value={invoice.tax_rate}
-            onChange={(v) => updateInvoice("tax_rate", v)}
-        />
-
-        <Text>Discount</Text>
-        <InputNumber
-            value={invoice.discount}
-            onChange={(v) => updateInvoice("discount", v)}
-        />
-        </Space>
+<InvoiceAdjustments
+  tax={invoice.tax_rate}
+  discount={invoice.discount}
+  onChange={updateInvoice}
+/>
         {/* Inline new labor row */}
         <Divider />
 

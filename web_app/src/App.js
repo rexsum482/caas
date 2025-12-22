@@ -4,7 +4,6 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation,
 } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -120,22 +119,6 @@ function AppContentRouter() {
 }
 
 function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }) {
-  const location = useLocation();
-
-  let active = "";
-  if (location.pathname === "/" || location.pathname === "/home") {
-    active = "home";
-  } else if (location.pathname.startsWith("/contact")) {
-    active = "contact";
-  } else if (location.pathname.startsWith("/customers")) {
-    active = "customers";
-  } else if (location.pathname.startsWith("/login")) {
-    active = "login";
-  } else if (location.pathname.startsWith("/signup")) {
-    active = "signup";
-  } else if (location.pathname.startsWith("/invoices")) {
-    active = "invoices";
-  }
 
   return (
     <>

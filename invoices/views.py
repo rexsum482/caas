@@ -61,7 +61,7 @@ from rest_framework import viewsets, permissions
 from django.http import HttpResponse, Http404
 from .models import Invoice
 from .serializers import InvoiceSerializer
-from .pdf import render_invoice_pdf  # <-- your PDF generator
+from .pdf import generate_invoice_pdf  # <-- your PDF generator
 
 class CustomerInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -70,6 +70,7 @@ class CustomerInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = InvoiceSerializer
     permission_classes = [permissions.AllowAny]
+    authentication_classes = [TokenAuthentication]
     queryset = Invoice.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
@@ -86,7 +87,7 @@ class CustomerInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
             raise Http404("Invoice not found")
 
         # Generate PDF
-        pdf = render_invoice_pdf(invoice)
+        pdf = generate_invoice_pdf(invoice)
 
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = (
