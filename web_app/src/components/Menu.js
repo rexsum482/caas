@@ -23,19 +23,32 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
     localStorage.removeItem("authToken");
     navigate("/login");
   };
+const navigateAndClose = (path) => {
+  navigate(path);
 
-  const getSelectedKey = () => {
-    const path = location.pathname;
-    if (path === "/" || path === "/home") return "home";
-    if (path.startsWith("/contact")) return "contact";
-    if (path.startsWith("/customers")) return "customers";
-    if (path.startsWith("/login")) return "login";
-    if (path.startsWith("/signup")) return "signup";
-    if (path.startsWith("/invoices")) return "invoices";
-    if (path.startsWith("/schedule")) return "schedule";
-    if (path.startsWith("/appointments")) return "appointments";
-    return "";
-  };
+  // allow navigation to start before drawer closes
+  setTimeout(() => {
+    setMobileOpen(false);
+  }, 150);
+};
+const getSelectedKey = () => {
+  const path = location.pathname;
+  
+  const routeMap = [
+    { key: "home", match: /^\/(home)?$/ },
+    { key: "customers", match: /^\/customers/ },
+    { key: "invoices", match: /^\/invoices/ },
+    { key: "appointments", match: /^\/appointments/ },
+    { key: "contact", match: /^\/contact/ },
+    { key: "schedule", match: /^\/schedule/ },
+    { key: "login", match: /^\/login/ },
+    { key: "signup", match: /^\/signup/ },
+  ];
+
+  const match = routeMap.find(r => r.match.test(path));
+  return match ? match.key : "";
+};
+
 
   return (
     <>
@@ -97,10 +110,6 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
                   </Menu.Item>
                 </>
               )}
-
-              <Menu.Item key="about">
-                <a href="/about">About</a>
-              </Menu.Item>
             </Menu>
           </div>
 
@@ -148,64 +157,91 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
         </Header>
       </Layout>
 
-      {/* Mobile Drawer */}
-      <Drawer
-        title={companyName}
-        placement="right"
-        onClose={() => setMobileOpen(false)}
-        open={mobileOpen}
-      >
-        <Menu
-          mode="inline"
-          selectedKeys={[getSelectedKey()]}
-          onClick={() => setMobileOpen(false)}
+<Drawer
+  title={companyName}
+  placement="right"
+  onClose={() => setMobileOpen(false)}
+  open={mobileOpen}
+>
+  <Menu
+    mode="inline"
+    selectedKeys={[getSelectedKey()]}
+    onClick={() => setMobileOpen(false)}
+  >
+    <Menu.Item key="home" onClick={() => navigate("/")}>
+      Home
+    </Menu.Item>
+
+    {isAdmin ? (
+      <>
+        <Menu.Item
+          key="customers"
+          onClick={() => navigateAndClose("/customers")}
         >
-          <Menu.Item key="home">
-            <a href="/">Home</a>
-          </Menu.Item>
+          Customers
+        </Menu.Item>
 
-          {isAdmin ? (
-            <Menu.Item key="customers">
-              <a href="/customers">Customers</a>
-            </Menu.Item>
-          ) : (
-            <Menu.Item key="contact">
-              <a href="/contact">Contact</a>
-            </Menu.Item>
-          )}
+        <Menu.Item
+          key="invoices"
+          onClick={() => navigateAndClose("/invoices")}
+        >
+          Invoices
+        </Menu.Item>
 
-          <Menu.Item key="about">
-            <a href="/about">About</a>
-          </Menu.Item>
+        <Menu.Item
+          key="appointments"
+          onClick={() => navigateAndClose("/appointments")}
+        >
+          Appointments
+        </Menu.Item>
+      </>
+    ) : (
+      <>
+        <Menu.Item
+          key="contact"
+          onClick={() => navigateAndClose("/contact")}
+        >
+          Contact
+        </Menu.Item>
 
-          {!isAuthenticated ? (
-            <>
-              <Menu.Item
-                key="login"
-                icon={<LoginOutlined />}
-                onClick={() => navigate("/login")}
-              >
-                Login
-              </Menu.Item>
-              <Menu.Item
-                key="signup"
-                icon={<UserAddOutlined />}
-                onClick={() => navigate("/signup")}
-              >
-                Sign Up
-              </Menu.Item>
-            </>
-          ) : (
-            <Menu.Item
-              key="logout"
-              icon={<LogoutOutlined />}
-              onClick={handleLogout}
-            >
-              Logout
-            </Menu.Item>
-          )}
-        </Menu>
-      </Drawer>
+        <Menu.Item
+          key="schedule"
+          onClick={() => navigateAndClose("/schedule")}
+        >
+          Schedule
+        </Menu.Item>
+      </>
+    )}
+
+    {!isAuthenticated ? (
+      <>
+        <Menu.Item
+          key="login"
+          icon={<LoginOutlined />}
+          onClick={() => navigateAndClose("/login")}
+        >
+          Login
+        </Menu.Item>
+
+        <Menu.Item
+          key="signup"
+          icon={<UserAddOutlined />}
+          onClick={() => navigateAndClose("/signup")}
+        >
+          Sign Up
+        </Menu.Item>
+      </>
+    ) : (
+      <Menu.Item
+        key="logout"
+        icon={<LogoutOutlined />}
+        onClick={handleLogout}
+      >
+        Logout
+      </Menu.Item>
+    )}
+  </Menu>
+</Drawer>
 
       {/* Responsive rules */}
       <style>{`

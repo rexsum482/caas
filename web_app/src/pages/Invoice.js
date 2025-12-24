@@ -25,6 +25,9 @@ import AddPartRow from "../components/invoice/AddPartRow";
 import AddLaborRow from "../components/invoice/AddLaborRow";
 import InvoiceAdjustments from "../components/invoice/InvoiceAdjustments";
 import { Modal, InputNumber, Select, List } from "antd";
+import { DeleteOutlined } from "@ant-design/icons";
+import { Popconfirm } from "antd";
+
 
 const { Title, Text } = Typography;
 const API = "/api";
@@ -72,6 +75,11 @@ export default function Invoice() {
     setPayments(paymentsRes.data || []);
     setLoading(false);
   };
+const deletePayment = async (paymentId) => {
+  await axios.delete(`${API}/payments/${paymentId}/`, { headers });
+  message.success("Payment deleted");
+  fetchInvoice();
+};
 
 const togglePaid = async () => {
   await api.post(`/invoices/${id}/mark_paid/`);
@@ -88,6 +96,7 @@ const submitPayment = async () => {
     `${API}/payments/`,
     {
       invoice: id,
+      payment_date: dayjs().format("YYYY-MM-DD"), // 👈 added
       ...payment,
     },
     { headers }
@@ -95,10 +104,14 @@ const submitPayment = async () => {
 
   message.success("Payment added");
   setPaymentModalOpen(false);
-  setPayment({ amount: null, method: "cash", reference: "", note: "" });
+  setPayment({
+    amount: null,
+    method: "cash",
+    reference: "",
+    note: "",
+  });
   fetchInvoice();
 };
-
   useEffect(() => {
     fetchInvoice();
   }, [id]);
@@ -321,22 +334,53 @@ const updateInvoice = (field, value) => {
 {payments.length === 0 ? (
   <Text type="secondary">No payments recorded</Text>
 ) : (
-  <List
-    bordered
-    dataSource={payments}
-    renderItem={(p) => (
-      <List.Item>
-        <Space style={{ width: "100%", justifyContent: "space-between" }}>
-          <div>
-            <Text strong>${p.amount}</Text>
-            <Text type="secondary"> • {p.method}</Text>
-            {p.reference && <Text type="secondary"> • {p.reference}</Text>}
-          </div>
-          <Text type="secondary">{dayjs(p.date).format("MM/DD/YYYY")}</Text>
+<List
+  bordered
+  dataSource={payments}
+  renderItem={(p) => (
+    <List.Item>
+      <Space
+        style={{
+          width: "100%",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        {/* Left side */}
+        <div>
+          <Text strong>${p.amount}</Text>
+          <Text type="secondary"> • {p.method}</Text>
+          {p.reference && (
+            <Text type="secondary"> • {p.reference}</Text>
+          )}
+        </div>
+
+        {/* Right side */}
+        <Space>
+          <Text type="secondary">
+            {dayjs(p.payment_date || p.date).format("MM/DD/YYYY")}
+          </Text>
+
+          <Popconfirm
+            title="Delete payment?"
+            description="This action cannot be undone."
+            okText="Delete"
+            okType="danger"
+            cancelText="Cancel"
+            onConfirm={() => deletePayment(p.id)}
+          >
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+            />
+          </Popconfirm>
         </Space>
-      </List.Item>
-    )}
-  />
+      </Space>
+    </List.Item>
+  )}
+/>
+
 )}
 
         {/* Inline new labor row */}

@@ -24,6 +24,7 @@ from msgs.views import MessageViewSet, AttachmentViewSet
 from invoices.views import InvoiceViewSet, PaymentViewSet, LaborViewSet, PartViewSet, CustomerInvoiceViewSet
 from customers.views import CustomerViewSet
 from appointments.views import AppointmentViewSet, public_reschedule
+from notifications.views import NotificationViewSet
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
@@ -36,6 +37,7 @@ router.register("parts", PartViewSet, basename="part")
 router.register("customer-invoices", CustomerInvoiceViewSet, basename="customer-invoice")
 router.register("customers", CustomerViewSet, basename="customer")
 router.register("appointments", AppointmentViewSet, basename="appointment")
+router.register("notifications", NotificationViewSet, basename="notification")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
