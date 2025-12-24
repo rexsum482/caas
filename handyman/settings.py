@@ -6,10 +6,6 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ────────────────────────────────────────────────
-# SECURITY & DEBUG
-# ────────────────────────────────────────────────
-
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
@@ -20,8 +16,6 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
 ] + os.getenv("ALLOWED_HOSTS", "").split(",")
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -36,7 +30,8 @@ INSTALLED_APPS = [
     'customers',
     'corsheaders',
     'rest_framework',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    'appointments',
 ]
 
 MIDDLEWARE = [
@@ -74,20 +69,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'handyman.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -104,24 +91,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'America/Chicago'
-
 USE_I18N = True
-
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
-
 STATIC_URL = 'static/'
-
 AUTH_USER_MODEL = "users.CustomUser"
 
 AUTHENTICATION_BACKENDS = [
@@ -131,10 +105,7 @@ AUTHENTICATION_BACKENDS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
+    ]
 }
 STATICFILES_DIRS = [
     BASE_DIR / 'web_app' / 'build' / 'static',
@@ -188,3 +159,5 @@ else:
     SQUARE_ACCESS_TOKEN = os.getenv("SQUARE_SANDBOX_TOKEN")
     SQUARE_APPLICATION_ID = os.getenv("SQUARE_SANDBOX_APPLICATION_ID")
     SQUARE_LOCATION_ID = os.getenv('SQUARE_SANDBOX_LOCATION_ID')
+
+COMPANY_NAME = os.getenv("REACT_APP_COMPANY_NAME") 

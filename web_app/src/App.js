@@ -20,15 +20,31 @@ import { Customer } from "./pages/Customer";
 import { AddCustomer } from "./pages/AddCustomer";
 import Invoice from "./pages/Invoice";
 import Invoices from "./components/Invoices";
+import PublicAppointmentScheduler from "./pages/Appoinment";
+import PublicRescheduleAppointment from "./pages/Reschedule";
+import Appointments from "./pages/Appointments";
+import { ConfigProvider } from "antd";
 
 const { Content } = Layout;
+const config = window.DJANGO_CONTEXT;
 
+  const companyName = config.companyName
+  const primaryColor = config.primaryColor
+  const accentColor = config.accentColor
 function App() {
   return (
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: primaryColor,
+        },
+      }}
+    >
     <Router>
       <AppContentRouter />
     </Router>
-  );
+    </ConfigProvider>
+);
 }
 
 function AppContentRouter() {
@@ -149,7 +165,9 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             <Route path="/customers" element={<Customers />} />
             <Route path="/invoices/:id" element={<Invoice />} />
             <Route path="/invoices" element={<Invoices />} />
-
+            <Route path="/schedule" element={<PublicAppointmentScheduler />} />
+            <Route path="/reschedule/:token" element={<PublicRescheduleAppointment />} />
+            <Route path="/appointments" element={<Appointments />} />
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

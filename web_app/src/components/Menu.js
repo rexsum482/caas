@@ -1,7 +1,12 @@
 import React, { useState } from "react";
 import { Layout, Menu, Button, Drawer } from "antd";
-import { LogoutOutlined, MenuOutlined } from "@ant-design/icons";
-import { useLocation } from "react-router-dom";
+import {
+  LogoutOutlined,
+  MenuOutlined,
+  LoginOutlined,
+  UserAddOutlined,
+} from "@ant-design/icons";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const { Header } = Layout;
 const config = window.DJANGO_CONTEXT;
@@ -9,32 +14,28 @@ const config = window.DJANGO_CONTEXT;
 const TopNavBar = ({ isAuthenticated, isAdmin }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const companyName = config.companyName
-  const primaryColor = config.primaryColor
-  const accentColor = config.accentColor
+  const companyName = config.companyName;
+  const accentColor = config.accentColor;
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+    localStorage.removeItem("authToken");
+    navigate("/login");
   };
 
   const getSelectedKey = () => {
-  let active = "";
-  if (location.pathname === "/" || location.pathname === "/home") {
-    return "home";
-  } else if (location.pathname.startsWith("/contact")) {
-    return "contact";
-  } else if (location.pathname.startsWith("/customers")) {
-    return "customers";
-  } else if (location.pathname.startsWith("/login")) {
-    return "login";
-  } else if (location.pathname.startsWith("/signup")) {
-    return "signup";
-  } else if (location.pathname.startsWith("/invoices")) {
-    return "invoices";
-  }
-}
+    const path = location.pathname;
+    if (path === "/" || path === "/home") return "home";
+    if (path.startsWith("/contact")) return "contact";
+    if (path.startsWith("/customers")) return "customers";
+    if (path.startsWith("/login")) return "login";
+    if (path.startsWith("/signup")) return "signup";
+    if (path.startsWith("/invoices")) return "invoices";
+    if (path.startsWith("/schedule")) return "schedule";
+    if (path.startsWith("/appointments")) return "appointments";
+    return "";
+  };
 
   return (
     <>
@@ -44,7 +45,7 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            background: `${accentColor}`,
+            background: accentColor,
             padding: "0 20px",
             position: "sticky",
             top: 0,
@@ -55,9 +56,8 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
           <div
             style={{
               color: "white",
-              fontSize: "20px",
+              fontSize: 20,
               fontWeight: "bold",
-              letterSpacing: "1px",
             }}
           >
             {companyName}
@@ -69,40 +69,66 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
               theme="dark"
               mode="horizontal"
               selectedKeys={[getSelectedKey()]}
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                background: "transparent",
-              }}
+              style={{ background: "transparent", justifyContent: "center" }}
             >
               <Menu.Item key="home">
                 <a href="/">Home</a>
               </Menu.Item>
-                { isAdmin ? 
+
+              {isAdmin ? (
                 <>
-                <Menu.Item key="customers">
+                  <Menu.Item key="customers">
                     <a href="/customers">Customers</a>
-                </Menu.Item>
-                <Menu.Item key="invoices">
+                  </Menu.Item>
+                  <Menu.Item key="invoices">
                     <a href="/invoices">Invoices</a>
-                </Menu.Item>
+                  </Menu.Item>
+                  <Menu.Item key="appointments">
+                    <a href="/appointments">Appointments</a>
+                  </Menu.Item>
                 </>
-                :
-                <Menu.Item key="contact">
+              ) : (
+                <>
+                  <Menu.Item key="contact">
                     <a href="/contact">Contact</a>
-                </Menu.Item>
-                }
+                  </Menu.Item>
+                  <Menu.Item key="schedule">
+                    <a href="/schedule">Schedule</a>
+                  </Menu.Item>
+                </>
+              )}
+
               <Menu.Item key="about">
                 <a href="/about">About</a>
               </Menu.Item>
             </Menu>
           </div>
 
-          {/* Right Side */}
+          {/* Right-side buttons */}
           <div style={{ display: "flex", gap: 10 }}>
-            {isAuthenticated && (
+            {!isAuthenticated ? (
+              <>
+                <Button
+                  type="default"
+                  icon={<LoginOutlined />}
+                  onClick={() => navigate("/login")}
+                  className="desktop-menu"
+                >
+                  Login
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<UserAddOutlined />}
+                  onClick={() => navigate("/signup")}
+                  className="desktop-menu"
+                >
+                  Sign Up
+                </Button>
+              </>
+            ) : (
               <Button
                 type="primary"
+                danger
                 icon={<LogoutOutlined />}
                 onClick={handleLogout}
                 className="desktop-menu"
@@ -111,7 +137,7 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
               </Button>
             )}
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile menu button */}
             <Button
               type="text"
               icon={<MenuOutlined style={{ fontSize: 22, color: "white" }} />}
@@ -122,7 +148,7 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
         </Header>
       </Layout>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer */}
       <Drawer
         title={companyName}
         placement="right"
@@ -137,20 +163,39 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
           <Menu.Item key="home">
             <a href="/">Home</a>
           </Menu.Item>
-          { isAdmin ?
-          <Menu.Item key="customers">
-            <a href="/customers">Customers</a>
-          </Menu.Item>
-          :
-          <Menu.Item key="contact">
-            <a href="/contact">Contact</a>
-          </Menu.Item>
-          }
+
+          {isAdmin ? (
+            <Menu.Item key="customers">
+              <a href="/customers">Customers</a>
+            </Menu.Item>
+          ) : (
+            <Menu.Item key="contact">
+              <a href="/contact">Contact</a>
+            </Menu.Item>
+          )}
+
           <Menu.Item key="about">
             <a href="/about">About</a>
           </Menu.Item>
 
-          {isAuthenticated && (
+          {!isAuthenticated ? (
+            <>
+              <Menu.Item
+                key="login"
+                icon={<LoginOutlined />}
+                onClick={() => navigate("/login")}
+              >
+                Login
+              </Menu.Item>
+              <Menu.Item
+                key="signup"
+                icon={<UserAddOutlined />}
+                onClick={() => navigate("/signup")}
+              >
+                Sign Up
+              </Menu.Item>
+            </>
+          ) : (
             <Menu.Item
               key="logout"
               icon={<LogoutOutlined />}
@@ -162,7 +207,7 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
         </Menu>
       </Drawer>
 
-      {/* Responsive styling */}
+      {/* Responsive rules */}
       <style>{`
         @media (min-width: 768px) {
           .desktop-menu {

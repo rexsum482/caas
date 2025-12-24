@@ -8,6 +8,7 @@ import {
   Typography,
   message,
   Tag,
+  Input,
 } from "antd";
 import {
   FilePdfOutlined,
@@ -15,6 +16,7 @@ import {
   LinkOutlined,
 } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
+import api from "../components/axios";
 import axios from "axios";
 import dayjs from "dayjs";
 import PartsTable from "../components/invoice/PartsTable";
@@ -22,6 +24,7 @@ import LaborTable from "../components/invoice/LaborTable";
 import AddPartRow from "../components/invoice/AddPartRow";
 import AddLaborRow from "../components/invoice/AddLaborRow";
 import InvoiceAdjustments from "../components/invoice/InvoiceAdjustments";
+import { Modal, InputNumber, Select, List } from "antd";
 
 const { Title, Text } = Typography;
 const API = "/api";
@@ -31,7 +34,14 @@ const COL_PRICE_WIDTH = 120;
 const COL_ACTION_WIDTH = 80;
 
 export default function Invoice() {
-
+  const [payments, setPayments] = useState([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [payment, setPayment] = useState({
+    amount: null,
+    method: "cash",
+    reference: "",
+    note: "",
+  });
   const { id } = useParams();
   const token = localStorage.getItem("authToken");
   const [newPart, setNewPart] = useState({
@@ -52,10 +62,42 @@ export default function Invoice() {
 
   const fetchInvoice = async () => {
     setLoading(true);
-    const res = await axios.get(`${API}/invoices/${id}/`, { headers });
-    setInvoice(res.data);
+
+    const [invoiceRes, paymentsRes] = await Promise.all([
+      axios.get(`${API}/invoices/${id}/`, { headers }),
+      axios.get(`${API}/payments/?invoice=${id}`, { headers }),
+    ]);
+
+    setInvoice(invoiceRes.data);
+    setPayments(paymentsRes.data || []);
     setLoading(false);
   };
+
+const togglePaid = async () => {
+  await api.post(`/invoices/${id}/mark_paid/`);
+  message.success(invoice.paid ? "Marked unpaid" : "Marked paid");
+  fetchInvoice();
+};
+
+const submitPayment = async () => {
+  if (!payment.amount) {
+    return message.error("Payment amount required");
+  }
+
+  await axios.post(
+    `${API}/payments/`,
+    {
+      invoice: id,
+      ...payment,
+    },
+    { headers }
+  );
+
+  message.success("Payment added");
+  setPaymentModalOpen(false);
+  setPayment({ amount: null, method: "cash", reference: "", note: "" });
+  fetchInvoice();
+};
 
   useEffect(() => {
     fetchInvoice();
@@ -273,6 +315,30 @@ const updateInvoice = (field, value) => {
   discount={invoice.discount}
   onChange={updateInvoice}
 />
+<Divider />
+<Title level={4}>Payments</Title>
+
+{payments.length === 0 ? (
+  <Text type="secondary">No payments recorded</Text>
+) : (
+  <List
+    bordered
+    dataSource={payments}
+    renderItem={(p) => (
+      <List.Item>
+        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+          <div>
+            <Text strong>${p.amount}</Text>
+            <Text type="secondary"> • {p.method}</Text>
+            {p.reference && <Text type="secondary"> • {p.reference}</Text>}
+          </div>
+          <Text type="secondary">{dayjs(p.date).format("MM/DD/YYYY")}</Text>
+        </Space>
+      </List.Item>
+    )}
+  />
+)}
+
         {/* Inline new labor row */}
         <Divider />
 
@@ -289,7 +355,73 @@ const updateInvoice = (field, value) => {
           </Button>
         </Space>
       </Space>
+      <Divider />
+      <Title level={4}>Payments</Title>
+<Space align="center">
+  <Text strong>Status:</Text>
+  {invoice.paid ? <Tag color="green">Paid</Tag> : <Tag color="red">Unpaid</Tag>}
+
+  <Button
+    type={invoice.paid ? "default" : "primary"}
+    onClick={togglePaid}
+  >
+    {invoice.paid ? "Mark Unpaid" : "Mark Paid"}
+  </Button>
+
+  <Button onClick={() => setPaymentModalOpen(true)}>
+    Add Payment
+  </Button>
+
+  <Text strong>Total:</Text>
+  <Text>${invoice.amount}</Text>
+</Space>
+<Modal
+  title="Add Payment"
+  open={paymentModalOpen}
+  onCancel={() => setPaymentModalOpen(false)}
+  onOk={submitPayment}
+  okText="Add Payment"
+>
+  <Space direction="vertical" style={{ width: "100%" }}>
+    <InputNumber
+      style={{ width: "100%" }}
+      placeholder="Amount"
+      min={0}
+      value={payment.amount}
+      onChange={(v) => setPayment({ ...payment, amount: v })}
+    />
+
+    <Select
+      value={payment.method}
+      onChange={(v) => setPayment({ ...payment, method: v })}
+    >
+      <Select.Option value="cash">Cash</Select.Option>
+      <Select.Option value="card">Card</Select.Option>
+      <Select.Option value="check">Check</Select.Option>
+      <Select.Option value="online">Online</Select.Option>
+    </Select>
+
+    <Input
+      placeholder="Reference (optional)"
+      value={payment.reference}
+      onChange={(e) =>
+        setPayment({ ...payment, reference: e.target.value })
+      }
+    />
+
+    <Input.TextArea
+      placeholder="Notes (optional)"
+      rows={3}
+      value={payment.note}
+      onChange={(e) =>
+        setPayment({ ...payment, note: e.target.value })
+      }
+    />
+  </Space>
+</Modal>
+
     </Card>
+
   );
 }
 function arrayMove(array, from, to) {

@@ -2,6 +2,7 @@ from rest_framework import viewsets, permissions, decorators, response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
+from rest_framework.response import Response
 
 from .models import Invoice, Part, Labor, Payment
 from .serializers import (
@@ -13,8 +14,9 @@ from .serializers import (
 
 from .pdf import generate_invoice_pdf
 
+
 class InvoiceViewSet(viewsets.ModelViewSet):
-    queryset = Invoice.objects.select_related("customer").all()
+    queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -23,6 +25,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser:
             return self.queryset
+        return self.queryset.filter(user=user)
 
     @decorators.action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
@@ -34,6 +37,17 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             f'inline; filename="invoice_{invoice.invoice_number}.pdf"'
         )
         return response
+
+    @decorators.action(detail=True, methods=["post"])
+    def mark_paid(self, request, pk=None):
+        invoice = self.get_object()
+        invoice.paid = not invoice.paid
+        invoice.save()
+
+        return Response({
+            "paid": invoice.paid,
+            "message": "Invoice marked as paid" if invoice.paid else "Invoice marked as unpaid"
+        })
 
 class PartViewSet(viewsets.ModelViewSet):
     queryset = Part.objects.select_related("invoice").all()

@@ -23,6 +23,8 @@ from django.views.generic import TemplateView
 from msgs.views import MessageViewSet, AttachmentViewSet
 from invoices.views import InvoiceViewSet, PaymentViewSet, LaborViewSet, PartViewSet, CustomerInvoiceViewSet
 from customers.views import CustomerViewSet
+from appointments.views import AppointmentViewSet, public_reschedule
+
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
 router.register("messages", MessageViewSet, basename="message")
@@ -33,10 +35,16 @@ router.register("labor", LaborViewSet, basename="labor")
 router.register("parts", PartViewSet, basename="part")
 router.register("customer-invoices", CustomerInvoiceViewSet, basename="customer-invoice")
 router.register("customers", CustomerViewSet, basename="customer")
+router.register("appointments", AppointmentViewSet, basename="appointment")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("auth/", ObtainAuthToken.as_view(), name="api_token_auth"),
+    path(
+        "appointments/reschedule/<uuid:token>/",
+        public_reschedule,
+        name="public-reschedule"
+    ),
     path('api/', include(router.urls)),
     re_path(r'^.*$', TemplateView.as_view(template_name='index.html'), name='react_app'),
 ]
