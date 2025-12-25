@@ -11,7 +11,7 @@ import Signup from "./pages/Signup";
 import Home from "./pages/Home";
 import { Layout, Spin } from "antd";
 
-import WEBPAGE from "./data/constants";
+import { WEBPAGE } from "./data/constants";
 import TopNavBar from "./components/Menu";
 import AdminPage from "./pages/AdminPage";
 import ContactUs from "./pages/Contact";

@@ -12,7 +12,7 @@ DEBUG = os.getenv("DEBUG", "True") == "True"
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8000")
 
 ALLOWED_HOSTS = [
-    '192.168.1.75',
+    '192.168.1.223',
     'localhost',
     '127.0.0.1',
 ] + os.getenv("ALLOWED_HOSTS", "").split(",")
@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'appointments',
+    'notifications.apps.NotificationsConfig',
 ]
 
 MIDDLEWARE = [
@@ -40,9 +41,14 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+
+    # Auth
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
+
+    # Your middleware AFTER auth
     'handyman.middleware.UpdateLastActiveMiddleware',
+
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -68,7 +74,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'handyman.wsgi.application'
-
+ASGI_APPLICATION = 'handyman.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -161,3 +167,19 @@ else:
     SQUARE_LOCATION_ID = os.getenv('SQUARE_SANDBOX_LOCATION_ID')
 
 COMPANY_NAME = os.getenv("REACT_APP_COMPANY_NAME") 
+
+
+FIREBASE_CREDENTIALS = (
+    os.getenv("FIREBASE_CREDENTIALS")
+    if not DEBUG
+    else None
+)
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}

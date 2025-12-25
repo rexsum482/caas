@@ -11,10 +11,10 @@ class NotificationSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "content",
+            "is_read",
             "created_at",
             "time_since",
         ]
-        read_only_fields = ["id", "created_at", "time_since"]
 
     def get_time_since(self, obj):
         return obj.time_since()

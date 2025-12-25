@@ -1,27 +1,50 @@
 from django.db import models
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+User = settings.AUTH_USER_MODEL
+
 
 class Notification(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications"
+    )
     title = models.CharField(max_length=255)
     content = models.TextField()
+    is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
     def __str__(self):
         return self.title
-    
+
     def time_since(self):
         from django.utils import timezone
         from datetime import timedelta
 
-        current_time = timezone.now()
-        time_difference = current_time - self.created_at
+        delta = timezone.now() - self.created_at
 
-        if time_difference < timedelta(seconds=20):
+        if delta < timedelta(seconds=20):
             return "just now"
-        if time_difference < timedelta(minutes=1):
-            return "{time_difference.seconds} seconds ago"
-        elif time_difference < timedelta(hours=1):
-            return f"{time_difference.seconds // 60} minutes ago"
-        elif time_difference < timedelta(days=1):
-            return f"{time_difference.seconds // 3600} hours ago"
-        else:
-            return f"{time_difference.days} days ago"
+        if delta < timedelta(minutes=1):
+            return f"{delta.seconds} seconds ago"
+        if delta < timedelta(hours=1):
+            return f"{delta.seconds // 60} minutes ago"
+        if delta < timedelta(days=1):
+            return f"{delta.seconds // 3600} hours ago"
+        return f"{delta.days} days ago"
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(days=30)
+        super().save(*args, **kwargs)
+
+class Device(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)

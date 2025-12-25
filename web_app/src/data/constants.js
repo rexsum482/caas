@@ -1,3 +1,3 @@
 const WEBPAGE = "http://localhost:8000";
-
-export default WEBPAGE;
+const WEBSOCKET = "ws://192.168.1.223:8001";
+export { WEBPAGE, WEBSOCKET };

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Form, Input, Button, Upload, message as antdMessage, Card } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
-import WEBPAGE from "../data/constants";
+import { WEBPAGE } from "../data/constants";
 import FormItem from "antd/es/form/FormItem";
 const { TextArea } = Input;
 

@@ -7,7 +7,7 @@ import {
   UserAddOutlined,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import NotificationBell from "./Notification";
 const { Header } = Layout;
 const config = window.DJANGO_CONTEXT;
 
@@ -115,6 +115,7 @@ const getSelectedKey = () => {
 
           {/* Right-side buttons */}
           <div style={{ display: "flex", gap: 10 }}>
+            {isAuthenticated && <NotificationBell isAuthenticated={isAuthenticated} />}
             {!isAuthenticated ? (
               <>
                 <Button
