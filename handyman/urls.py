@@ -9,6 +9,7 @@ from invoices.views import InvoiceViewSet, PaymentViewSet, LaborViewSet, PartVie
 from customers.views import CustomerViewSet
 from appointments.views import AppointmentViewSet, public_reschedule
 from notifications.views import NotificationViewSet
+from reviews.views import GoogleReviewViewSet, ReviewStatsView
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
@@ -22,6 +23,7 @@ router.register("customer-invoices", CustomerInvoiceViewSet, basename="customer-
 router.register("customers", CustomerViewSet, basename="customer")
 router.register("appointments", AppointmentViewSet, basename="appointment")
 router.register("notifications", NotificationViewSet, basename="notification")
+router.register("reviews", GoogleReviewViewSet, basename="review")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,6 +33,7 @@ urlpatterns = [
         public_reschedule,
         name="public-reschedule"
     ),
+    path("api/reviews/stats/", ReviewStatsView.as_view(), name="review-stats"),
     path('api/', include(router.urls)),
     re_path(r'^.*$', TemplateView.as_view(template_name='index.html'), name='react_app'),
 ]

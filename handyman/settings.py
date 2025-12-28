@@ -69,6 +69,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'handyman.context_processors.frontend_context',
+                "reviews.context_processors.review_schema",
             ],
         },
     },
