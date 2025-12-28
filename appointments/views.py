@@ -1,15 +1,18 @@
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.conf import settings
+
+from datetime import datetime
+
 from .permissions import IsAdminOrReadCreateOnly
 from .models import Appointment
 from .serializers import AppointmentSerializer, PublicAppointmentSerializer
 from .utils import send_appointment_email, send_mail
-from datetime import datetime
 from .scheduling import generate_time_slots
-from django.db import transaction
-from rest_framework.decorators import api_view
-from django.shortcuts import get_object_or_404
+
 
 @api_view(["GET", "POST"])
 def public_reschedule(request, token):
@@ -49,9 +52,7 @@ def public_reschedule(request, token):
         exclude_appointment_id=appointment.id
     )
 
-    if new_time.strftime("%H:%M") not in [
-        s["time"] for s in available
-    ]:
+    if new_time.strftime("%H:%M") not in [s["time"] for s in available]:
         return Response(
             {"error": "Selected time is no longer available"},
             status=400
@@ -79,8 +80,11 @@ We will notify you once it is confirmed.
 
     return Response({"status": "rescheduled"})
 
+
 class AppointmentViewSet(viewsets.ModelViewSet):
-    queryset = Appointment.objects.all().order_by("-requested_date", "-requested_time")
+    queryset = Appointment.objects.all().order_by(
+        "-requested_date", "-requested_time"
+    )
     serializer_class = AppointmentSerializer
     permission_classes = [IsAdminOrReadCreateOnly]
 
@@ -88,8 +92,23 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
 
         status_filter = self.request.query_params.get("status")
+        appointment_id = self.request.query_params.get("appointment")
+        date_filter = self.request.query_params.get("date")
+
         if status_filter in ["P", "A", "D"]:
             queryset = queryset.filter(accepted=status_filter)
+
+        # 🔗 Deep-link: single appointment
+        if appointment_id:
+            queryset = queryset.filter(id=appointment_id)
+
+        # 📅 Deep-link: calendar date
+        if date_filter:
+            try:
+                date = datetime.strptime(date_filter, "%Y-%m-%d").date()
+                queryset = queryset.filter(requested_date=date)
+            except ValueError:
+                pass  # ignore invalid date silently
 
         return queryset
 
@@ -188,24 +207,23 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             appointment.requested_date = new_date
             appointment.requested_time = new_time
-            appointment.accepted = "P"  # re-review if needed
+            appointment.accepted = "P"
             appointment.save()
 
         send_mail(
             subject="Appointment Rescheduled",
             message=f"""
-        Hello {appointment.customer_first_name},
+Hello {appointment.customer_first_name},
 
-        🔄 Your appointment has been rescheduled.
+🔄 Your appointment has been rescheduled.
 
-        📅 New Date: {new_date}
-        ⏰ New Time: {new_time.strftime('%I:%M %p')}
+📅 New Date: {new_date}
+⏰ New Time: {new_time.strftime('%I:%M %p')}
 
-        If you did not request this change, please contact us immediately.
-        """,
+If you did not request this change, please contact us immediately.
+""",
             from_email=settings.ADMIN_EMAIL,
             recipient=appointment.customer_email,
-
         )
 
         return Response({

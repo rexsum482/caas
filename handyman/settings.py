@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'appointments',
     'notifications.apps.NotificationsConfig',
+    'reviews',
 ]
 
 MIDDLEWARE = [

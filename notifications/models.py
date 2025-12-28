@@ -4,8 +4,17 @@ from django.utils import timezone
 from datetime import timedelta
 User = settings.AUTH_USER_MODEL
 
-
 class Notification(models.Model):
+    TYPE_CHOICES = [
+        ("A", "Appointment"),
+        ("I", "Invoice"),
+        ("S", "System"),
+        ("M", "Message"),
+        ("G", "General"),
+        ("R", "Reminder"),
+        ("P", "Payment"),
+        ("U", "Update"),
+    ]
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -14,8 +23,15 @@ class Notification(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     is_read = models.BooleanField(default=False)
+    type = models.CharField(
+        max_length=1,
+        choices=TYPE_CHOICES,
+        default="S",
+        blank=True, null=True
+    )
+    metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]

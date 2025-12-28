@@ -14,6 +14,8 @@ class NotificationSerializer(serializers.ModelSerializer):
             "is_read",
             "created_at",
             "time_since",
+            'type',
+            "metadata",
         ]
 
     def get_time_since(self, obj):

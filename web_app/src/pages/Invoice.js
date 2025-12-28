@@ -66,13 +66,10 @@ export default function Invoice() {
   const fetchInvoice = async () => {
     setLoading(true);
 
-    const [invoiceRes, paymentsRes] = await Promise.all([
-      axios.get(`${API}/invoices/${id}/`, { headers }),
-      axios.get(`${API}/payments/?invoice=${id}`, { headers }),
-    ]);
+    const res = await axios.get(`${API}/invoices/${id}/`, { headers });
+    setInvoice(res.data);
+    setPayments(res.data.payments);
 
-    setInvoice(invoiceRes.data);
-    setPayments(paymentsRes.data || []);
     setLoading(false);
   };
 const deletePayment = async (paymentId) => {
@@ -245,10 +242,12 @@ const updateInvoice = (field, value) => {
         <Title level={3}>Invoice {invoice.invoice_number}</Title>
 
         <Space>
-          <Text strong>Status:</Text>
-          {invoice.paid ? <Tag color="green">Paid</Tag> : <Tag color="red">Unpaid</Tag>}
-          <Text strong>Total:</Text>
-          <Text>${invoice.amount}</Text>
+          <Text strong>Total:</Text> <Text>${invoice.amount}</Text>
+          <Text strong>Paid:</Text> <Text>${invoice.total_payments.toFixed(2)}</Text>
+          <Text strong>Balance:</Text> 
+          <Text type={invoice.balance_due === 0 ? "success" : "danger"}>
+            ${invoice.balance_due}
+          </Text>
         </Space>
 
         <Space>

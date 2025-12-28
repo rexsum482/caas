@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.utils import timezone
 from decimal import Decimal
+from django.db.models import Sum
 
 class Invoice(models.Model):
     invoice_number = models.CharField(
@@ -21,9 +22,21 @@ class Invoice(models.Model):
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=8.25)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
-
     def __str__(self):
         return f"Invoice {self.invoice_number} - {self.customer}"
+
+    def total_payments(self):
+        return self.payments.aggregate(total=Sum("amount"))["total"] or 0
+
+    def balance_due(self):
+        return max(self.amount - self.total_payments(), 0)
+
+    def update_payment_status(self):
+        """Automatically mark paid/unpaid depending on payment total."""
+        if self.total_payments() >= self.amount:
+            self.mark_as_paid()
+        else:
+            self.mark_as_unpaid()
 
     def mark_as_paid(self):
         self.paid = True
@@ -42,7 +55,10 @@ class Invoice(models.Model):
         ]
     def days_until_due(self):
         from django.utils import timezone
-        delta = self.due_date - timezone.now().date()
+        try:
+            delta = self.due_date - timezone.now().date()
+        except TypeError:
+            return None
         return delta.days
     
     def is_overdue(self):
@@ -140,7 +156,7 @@ class Labor(models.Model):
         self.invoice.recalculate_amount()
 
 class Payment(models.Model):
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments')
     payment_date = models.DateField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     method = models.CharField(max_length=50)
@@ -158,8 +174,12 @@ class Payment(models.Model):
         ]
     
     def save(self, *args, **kwargs):
-        # Custom save logic can be added here
         super().save(*args, **kwargs)
+        self.invoice.update_payment_status()
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        self.invoice.update_payment_status()
 
     def apply_to_invoice(self):
         if self.amount >= self.invoice.amount:

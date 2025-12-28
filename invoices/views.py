@@ -3,6 +3,8 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
 from rest_framework.response import Response
+from decimal import Decimal, ROUND_HALF_UP
+
 
 from .models import Invoice, Part, Labor, Payment
 from .serializers import (
@@ -69,7 +71,13 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         payment = serializer.save()
-        payment.apply_to_invoice()
+        payment.invoice.update_payment_status()
+
+    def retrieve(self, request, *args, **kwargs):
+        amount = self.get_object().amount
+        self.get_object().amount = amount.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+        self.get_object().save()
+        return super().retrieve(request, *args, **kwargs)
 
 from rest_framework import viewsets, permissions
 from django.http import HttpResponse, Http404
