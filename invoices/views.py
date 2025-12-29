@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
 from rest_framework.response import Response
 from decimal import Decimal, ROUND_HALF_UP
-
+from django.core.mail import send_mail
 
 from .models import Invoice, Part, Labor, Payment
 from .serializers import (
@@ -15,6 +15,7 @@ from .serializers import (
 )
 
 from .pdf import generate_invoice_pdf
+from .utils import send_invoice_email
 
 
 class InvoiceViewSet(viewsets.ModelViewSet):
@@ -50,6 +51,13 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             "paid": invoice.paid,
             "message": "Invoice marked as paid" if invoice.paid else "Invoice marked as unpaid"
         })
+    
+    @decorators.action(detail=True, methods=["get"])
+    def send_email(self, request, pk=None):
+        invoice = self.get_object()
+        to_email = request.GET.get("to")
+        send_inv = send_invoice_email(to_email=to_email, invoice=invoice)
+        return Response({"message": send_inv})
 
 class PartViewSet(viewsets.ModelViewSet):
     queryset = Part.objects.select_related("invoice").all()

@@ -23,6 +23,7 @@ import Invoices from "./components/Invoices";
 import PublicAppointmentScheduler from "./pages/Appoinment";
 import PublicRescheduleAppointment from "./pages/Reschedule";
 import Appointments from "./pages/Appointments";
+import About from "./pages/About";
 import { ConfigProvider } from "antd";
 
 const { Content } = Layout;
@@ -168,6 +169,7 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             <Route path="/schedule" element={<PublicAppointmentScheduler />} />
             <Route path="/reschedule/:token" element={<PublicRescheduleAppointment />} />
             <Route path="/appointments" element={<Appointments />} />
+            <Route path="/about" element={<About />} />
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

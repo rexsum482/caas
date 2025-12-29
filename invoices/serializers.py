@@ -56,6 +56,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.__str__", read_only=True)
     customer_city = serializers.CharField(source="customer.city", read_only=True)
     customer_state = serializers.CharField(source="customer.state", read_only=True)
+    customer_email = serializers.CharField(source="customer.email", read_only=True)
 
     parts = PartSerializer(source="line_items", many=True, read_only=True)
     labor = LaborSerializer(source="labor_items", many=True, read_only=True)
@@ -71,7 +72,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "id", "invoice_number", "customer", "amount", "issue_date", "due_date", "paid",
             "days_until_due", "is_overdue",
             "parts", "labor",
-            "customer_name","customer_city","customer_state",
+            "customer_name","customer_city","customer_state", "customer_email",
             "tax_rate","discount",
             "total_payments", "balance_due", "payments",
         ]

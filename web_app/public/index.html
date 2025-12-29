@@ -23,10 +23,10 @@
     <div id="root">
       <script>
         window.DJANGO_CONTEXT = {
-          adminEmail: "{{ admin_email }}",
-          companyName: "{{ company_name }}",
-          primaryColor: "{{ primary_color }}",
-          accentColor: "{{ accent_color }}",
+          adminEmail: "{{ admin_email|escapejs }}",
+          companyName: "{{ company_name|escapejs }}",
+          primaryColor: "{{ primary_color|escapejs }}",
+          accentColor: "{{ accent_color|escapejs }}",
         };
       </script>
     </div>

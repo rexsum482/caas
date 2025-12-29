@@ -61,7 +61,6 @@ function LaborTable({
             />
           ),
         },
-        { title: "Total", dataIndex: "total_price" },
         {
           title: "",
           width: COL_ACTION_WIDTH,

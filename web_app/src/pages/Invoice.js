@@ -27,18 +27,20 @@ import InvoiceAdjustments from "../components/invoice/InvoiceAdjustments";
 import { Modal, InputNumber, Select, List } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { Popconfirm } from "antd";
+import { Grid, Row, Col } from "antd";
 
+const { useBreakpoint } = Grid;
 
 const { Title, Text } = Typography;
 const API = "/api";
-const COL_DESC_WIDTH = 460;
-const COL_QTY_WIDTH = 80;
-const COL_PRICE_WIDTH = 120;
-const COL_ACTION_WIDTH = 80;
+const config = window.DJANGO_CONTEXT;
 
 export default function Invoice() {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [payments, setPayments] = useState([]);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const CSRFToken = config.csrf_token;
   const [payment, setPayment] = useState({
     amount: null,
     method: "cash",
@@ -61,8 +63,12 @@ export default function Invoice() {
   const [loading, setLoading] = useState(false);
   const headers = {
     Authorization: `Token ${token}`,
+    'X-CSRFToken': CSRFToken,
   };
-
+  const COL_DESC_WIDTH = isMobile ? 220 : 460;
+  const COL_QTY_WIDTH = isMobile ? 60 : 80;
+  const COL_PRICE_WIDTH = isMobile ? 90 : 120;
+  const COL_ACTION_WIDTH = 60;
   const fetchInvoice = async () => {
     setLoading(true);
 
@@ -224,8 +230,9 @@ const updateInvoice = (field, value) => {
   };
 
   const sendEmail = async () => {
-    await axios.post(`${API}/invoices/${id}/send-email/`, {}, { headers });
+    const res = await axios.get(`${API}/invoices/${id}/send_email/?to=${invoice.customer_email}`, { headers } );
     message.success("Invoice sent to customer");
+    console.log(res.data);
   };
 
   const copyPortalLink = () => {
@@ -234,24 +241,55 @@ const updateInvoice = (field, value) => {
     message.success("Customer portal link copied");
   };
 
+  const partsTotal = invoice?.parts?.reduce(
+    (sum, p) => sum + (Number(p.quantity) || 0) * (Number(p.unit_price) || 0),
+    0
+  ) || 0;
+
+  const laborTotal = invoice?.labor?.reduce(
+    (sum, l) => sum + (Number(l.hours) || 0) * (Number(l.hourly_rate) || 0),
+    0
+  ) || 0;
+
+  const formatMoney = (value) =>
+    value.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+
   if (!invoice) return null;
 
   return (
-    <Card loading={loading} style={{ maxWidth: 1200, margin: "auto" }}>
+    <Card
+      loading={loading}
+      style={{
+        maxWidth: 1200,
+        margin: "auto",
+        padding: isMobile ? 8 : 24,
+      }}
+    >
       <Space direction="vertical" style={{ width: "100%" }} size="large">
-        <Title level={3}>Invoice {invoice.invoice_number}</Title>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+                <Title level={3}>Invoice #{invoice.invoice_number}</Title>
+                <Space wrap>
+                  <Text strong>Total:</Text>
+                  <Text>${invoice.amount}</Text>
 
-        <Space>
-          <Text strong>Total:</Text> <Text>${invoice.amount}</Text>
-          <Text strong>Paid:</Text> <Text>${invoice.total_payments.toFixed(2)}</Text>
-          <Text strong>Balance:</Text> 
-          <Text type={invoice.balance_due === 0 ? "success" : "danger"}>
-            ${invoice.balance_due}
-          </Text>
+                  <Text strong>Paid:</Text>
+                  <Text>${invoice.total_payments.toFixed(2)}</Text>
+
+                  <Text strong>Balance:</Text>
+                  <Text type={invoice.balance_due === 0 ? "success" : "danger"}>
+                    ${invoice.balance_due}
+                  </Text>
+                </Space>
+            </Col>
+          </Row>
         </Space>
 
         <Space>
-          <Text>Issue:</Text> {invoice.issue_date}
+          <Text>Issue: {invoice.issue_date}</Text>
           <Text>Due:</Text>
           <DatePicker
             value={invoice.due_date ? dayjs(invoice.due_date) : null}
@@ -279,7 +317,12 @@ const updateInvoice = (field, value) => {
   COL_PRICE_WIDTH={COL_PRICE_WIDTH}
   COL_QTY_WIDTH={COL_QTY_WIDTH}
 />
-        {/* Inline new part row */}
+<Row justify="end" style={{ marginTop: 8 }}>
+  <Col>
+    <Text strong>Total Parts Cost:</Text>{" "}
+    <Text>{formatMoney(partsTotal)}</Text>
+  </Col>
+</Row>
 <AddPartRow
   value={newPart}
   onChange={setNewPart}
@@ -289,10 +332,7 @@ const updateInvoice = (field, value) => {
   COL_PRICE_WIDTH={COL_PRICE_WIDTH}
   COL_QTY_WIDTH={COL_QTY_WIDTH}
 />
-
-
         <Divider />
-
         {/* ---------- LABOR ---------- */}
         <Title level={4}>Labor</Title>
 <LaborTable
@@ -310,7 +350,12 @@ const updateInvoice = (field, value) => {
   COL_PRICE_WIDTH={COL_PRICE_WIDTH}
   COL_QTY_WIDTH={COL_QTY_WIDTH}
 />
-
+<Row justify="end" style={{ marginTop: 8 }}>
+  <Col>
+    <Text strong>Total Labor Cost:</Text>{" "}
+    <Text>{formatMoney(laborTotal)}</Text>
+  </Col>
+</Row>
 <AddLaborRow
   value={newLabor}
   onChange={setNewLabor}
@@ -320,6 +365,21 @@ const updateInvoice = (field, value) => {
   COL_PRICE_WIDTH={COL_PRICE_WIDTH}
   COL_QTY_WIDTH={COL_QTY_WIDTH}
 />
+<Divider />
+
+<Row justify="end">
+  <Col>
+    <Space direction="vertical" align="end">
+      <Text>Parts Subtotal: {formatMoney(partsTotal)}</Text>
+      <Text>Labor Subtotal: {formatMoney(laborTotal)}</Text>
+      <Divider style={{ margin: "8px 0" }} />
+      <Text strong>
+        Subtotal: {formatMoney(partsTotal + laborTotal)}
+      </Text>
+    </Space>
+  </Col>
+</Row>
+<Divider />
         <Title level={4}>Adjustments</Title>
 
 <InvoiceAdjustments
@@ -327,96 +387,118 @@ const updateInvoice = (field, value) => {
   discount={invoice.discount}
   onChange={updateInvoice}
 />
-<Divider />
+      <Divider />
 <Title level={4}>Payments</Title>
 
-{payments.length === 0 ? (
-  <Text type="secondary">No payments recorded</Text>
-) : (
-<List
-  bordered
-  dataSource={payments}
-  renderItem={(p) => (
-    <List.Item>
-      <Space
-        style={{
-          width: "100%",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
+<Space direction="vertical" size="middle" style={{ width: "100%" }}>
+  {/* ---- PAYMENT STATUS ---- */}
+  <Card size="small">
+    <Space direction="vertical" size="small">
+      <Space>
+        <Text strong>Status:</Text>
+        {invoice.paid ? (
+          <Tag color="green">Paid</Tag>
+        ) : (
+          <Tag color="red">Unpaid</Tag>
+        )}
+      </Space>
+
+      <Text strong>Total Invoice Amount: ${formatMoney(invoice.amount)}</Text>
+    </Space>
+  </Card>
+
+  {/* ---- PAYMENT ACTIONS ---- */}
+  <Card size="small">
+    <Space
+      direction={isMobile ? "vertical" : "horizontal"}
+      style={{ width: "100%" }}
+    >
+      <Button
+        type={invoice.paid ? "default" : "primary"}
+        block={isMobile}
+        onClick={togglePaid}
       >
-        {/* Left side */}
-        <div>
-          <Text strong>${p.amount}</Text>
-          <Text type="secondary"> • {p.method}</Text>
-          {p.reference && (
-            <Text type="secondary"> • {p.reference}</Text>
-          )}
-        </div>
+        {invoice.paid ? "Mark Unpaid" : "Mark Paid"}
+      </Button>
 
-        {/* Right side */}
-        <Space>
-          <Text type="secondary">
-            {dayjs(p.payment_date || p.date).format("MM/DD/YYYY")}
-          </Text>
+      <Button
+        block={isMobile}
+        type="dashed"
+        onClick={() => setPaymentModalOpen(true)}
+      >
+        Add Payment
+      </Button>
+    </Space>
+  </Card>
 
-          <Popconfirm
-            title="Delete payment?"
-            description="This action cannot be undone."
-            okText="Delete"
-            okType="danger"
-            cancelText="Cancel"
-            onConfirm={() => deletePayment(p.id)}
-          >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-            />
-          </Popconfirm>
-        </Space>
-      </Space>
-    </List.Item>
-  )}
-/>
+  {/* ---- PAYMENT LIST ---- */}
+  <Card size="small">
+    {payments.length === 0 ? (
+      <Text type="secondary">No payments recorded</Text>
+    ) : (
+      <List
+        itemLayout="vertical"
+        dataSource={payments}
+        renderItem={(p) => (
+          <List.Item>
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Space wrap>
+                <Text strong>${formatMoney(p.amount)}</Text>
+                <Tag>{p.method}</Tag>
+              </Space>
 
-)}
+              {p.reference && (
+                <Text type="secondary">Reference: {p.reference}</Text>
+              )}
 
-        {/* Inline new labor row */}
+              <Space
+                style={{
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                <Text type="secondary">
+                  {dayjs(p.payment_date || p.date).format("MM/DD/YYYY")}
+                </Text>
+
+                <Popconfirm
+                  title="Delete payment?"
+                  description="This action cannot be undone."
+                  okText="Delete"
+                  okType="danger"
+                  cancelText="Cancel"
+                  onConfirm={() => deletePayment(p.id)}
+                >
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                  />
+                </Popconfirm>
+              </Space>
+            </Space>
+          </List.Item>
+        )}
+      />
+    )}
+  </Card>
+</Space>
         <Divider />
-
-        {/* ---------- ACTIONS ---------- */}
-        <Space>
-          <Button icon={<FilePdfOutlined />} onClick={openPDF}>
-            View PDF
-          </Button>
-          <Button icon={<MailOutlined />} onClick={sendEmail}>
-            Email Invoice
-          </Button>
-          <Button icon={<LinkOutlined />} onClick={copyPortalLink}>
-            Customer Portal Link
-          </Button>
-        </Space>
-      </Space>
-      <Divider />
-      <Title level={4}>Payments</Title>
-<Space align="center">
-  <Text strong>Status:</Text>
-  {invoice.paid ? <Tag color="green">Paid</Tag> : <Tag color="red">Unpaid</Tag>}
-
-  <Button
-    type={invoice.paid ? "default" : "primary"}
-    onClick={togglePaid}
-  >
-    {invoice.paid ? "Mark Unpaid" : "Mark Paid"}
+<Space
+  direction={isMobile ? "vertical" : "horizontal"}
+  style={{ width: isMobile ? "100%" : "auto" }}
+>
+  <Button block={isMobile} icon={<FilePdfOutlined />} onClick={openPDF}>
+    View PDF
   </Button>
 
-  <Button onClick={() => setPaymentModalOpen(true)}>
-    Add Payment
+  <Button block={isMobile} icon={<MailOutlined />} onClick={sendEmail}>
+    Email Invoice
   </Button>
 
-  <Text strong>Total:</Text>
-  <Text>${invoice.amount}</Text>
+  <Button block={isMobile} icon={<LinkOutlined />} onClick={copyPortalLink}>
+    Customer Portal Link
+  </Button>
 </Space>
 <Modal
   title="Add Payment"
@@ -434,10 +516,11 @@ const updateInvoice = (field, value) => {
       onChange={(v) => setPayment({ ...payment, amount: v })}
     />
 
-    <Select
-      value={payment.method}
-      onChange={(v) => setPayment({ ...payment, method: v })}
-    >
+<Select
+  style={{ width: "100%" }}
+  value={payment.method}
+  onChange={(v) => setPayment({ ...payment, method: v })}
+>
       <Select.Option value="cash">Cash</Select.Option>
       <Select.Option value="card">Card</Select.Option>
       <Select.Option value="check">Check</Select.Option>

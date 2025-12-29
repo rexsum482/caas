@@ -22,6 +22,7 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     navigate("/login");
+    window.location.reload();
   };
 const navigateAndClose = (path) => {
   navigate(path);
@@ -43,6 +44,7 @@ const getSelectedKey = () => {
     { key: "schedule", match: /^\/schedule/ },
     { key: "login", match: /^\/login/ },
     { key: "signup", match: /^\/signup/ },
+    { key: "about", match: /^\/about/ },
   ];
 
   const match = routeMap.find(r => r.match.test(path));
@@ -108,6 +110,9 @@ const getSelectedKey = () => {
                   <Menu.Item key="schedule">
                     <a href="/schedule">Schedule</a>
                   </Menu.Item>
+                  <Menu.Item key="about">
+                    <a href="/about">About</a>
+                  </Menu.Item>
                 </>
               )}
             </Menu>
@@ -138,7 +143,6 @@ const getSelectedKey = () => {
             ) : (
               <Button
                 type="primary"
-                danger
                 icon={<LogoutOutlined />}
                 onClick={handleLogout}
                 className="desktop-menu"
@@ -210,6 +214,13 @@ const getSelectedKey = () => {
           onClick={() => navigateAndClose("/schedule")}
         >
           Schedule
+        </Menu.Item>
+
+        <Menu.Item
+          key="about"
+          onClick={() => navigateAndClose("/about")}
+        >
+          About
         </Menu.Item>
       </>
     )}

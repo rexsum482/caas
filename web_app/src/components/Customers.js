@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Table, Button, Popconfirm, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Grid } from "antd";
+
+const { useBreakpoint } = Grid;
 
 const API = "/api/customers/";
 
@@ -9,7 +12,8 @@ export function Customers() {
   const [customers, setCustomers] = useState([]);
   const navigate = useNavigate();
   const token = localStorage.getItem("authToken");
-
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const fetchCustomers = async () => {
     const res = await axios.get(API, {
@@ -32,7 +36,6 @@ export function Customers() {
     fetchCustomers();
   }, []);
 
-
   const columns = [
     { title: "Name", render: (_, r) => `${r.first_name} ${r.last_name}` },
     { title: "Email", dataIndex: "email" },
@@ -41,7 +44,7 @@ export function Customers() {
       <>
         <Button onClick={() => navigate(`/customers/${r.id}`)}>View</Button>
         <Popconfirm title="Delete?" onConfirm={() => deleteCustomer(r.id)}>
-          <Button danger style={{ marginLeft: 8 }}>Delete</Button>
+          <Button style={ isMobile ? {marginLeft: 0} : {marginLeft: 8} }>Delete</Button>
         </Popconfirm>
       </>
       ),

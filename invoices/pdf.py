@@ -181,7 +181,7 @@ def generate_invoice_pdf(invoice):
     # =========================
     # PAYMENTS
     # =========================
-    payments = invoice.payment_set.all()
+    payments = invoice.payments.all()
     total_paid = Decimal("0.00")
 
     if payments.exists():

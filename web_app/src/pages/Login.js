@@ -37,6 +37,7 @@ const Login = ({ setIsAuthenticated }) => {
 
       message.success("Login successful!");
       navigate("/");
+      window.location.reload();
     } catch (err) {
       message.error(err.message || "Login failed.");
     } finally {

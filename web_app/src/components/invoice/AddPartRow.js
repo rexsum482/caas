@@ -1,46 +1,81 @@
-import { Space, Input, InputNumber, Button } from "antd";
+import {
+  Input,
+  InputNumber,
+  Button,
+  Grid,
+  Row,
+  Col,
+  Card,
+} from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+
+const { useBreakpoint } = Grid;
 
 export default function AddPartRow({
   value,
   onChange,
   onAdd,
-  COL_DESC_WIDTH,
-  COL_QTY_WIDTH,
-  COL_PRICE_WIDTH,
-  COL_ACTION_WIDTH,
 }) {
+  const screens = useBreakpoint();
+
   return (
-    <Space style={{ marginTop: 8 }}>
-      <Input
-        style={{ width: COL_DESC_WIDTH }}
-        placeholder="Part Number / Description"
-        value={value.description}
-        onChange={e => onChange({ ...value, description: e.target.value })}
-      />
+    <Card
+      size="small"
+      bordered
+      style={{ marginTop: 16, background: "#fafafa" }}
+    >
+      <Row gutter={[12, 12]} align="middle">
+        {/* Description */}
+        <Col xs={24} md={12} lg={10}>
+          <Input
+            placeholder="Part number or description"
+            value={value.description}
+            onChange={(e) =>
+              onChange({ ...value, description: e.target.value })
+            }
+          />
+        </Col>
 
-      <InputNumber
-        style={{ width: COL_QTY_WIDTH }}
-        min={1}
-        value={value.quantity}
-        onChange={v => onChange({ ...value, quantity: v })}
-      />
+        {/* Quantity */}
+        <Col xs={12} md={6} lg={4}>
+          <InputNumber
+            style={{ width: "100%" }}
+            min={1}
+            placeholder="Qty"
+            value={value.quantity}
+            onChange={(v) =>
+              onChange({ ...value, quantity: v })
+            }
+          />
+        </Col>
 
-      <InputNumber
-        style={{ width: COL_PRICE_WIDTH }}
-        min={0}
-        value={value.unit_price}
-        onChange={v => onChange({ ...value, unit_price: v })}
-      />
+        {/* Unit Price */}
+        <Col xs={12} md={6} lg={4}>
+          <InputNumber
+            style={{ width: "100%" }}
+            min={0}
+            placeholder="Unit price"
+            formatter={(v) => `$${v}`}
+            parser={(v) => v.replace(/\$\s?|(,*)/g, "")}
+            value={value.unit_price}
+            onChange={(v) =>
+              onChange({ ...value, unit_price: v })
+            }
+          />
+        </Col>
 
-      <Button
-        style={{ width: COL_ACTION_WIDTH }}
-        icon={<PlusOutlined />}
-        type="primary"
-        onClick={onAdd}
-      >
-        Add
-      </Button>
-    </Space>
+        {/* Button */}
+        <Col xs={24} md={24} lg={6}>
+          <Button
+            type="primary"
+            block={!screens.lg}
+            icon={<PlusOutlined />}
+            onClick={onAdd}
+          >
+            Add Part
+          </Button>
+        </Col>
+      </Row>
+    </Card>
   );
 }
