@@ -10,6 +10,7 @@ from customers.views import CustomerViewSet
 from appointments.views import AppointmentViewSet, public_reschedule
 from notifications.views import NotificationViewSet
 from reviews.views import GoogleReviewViewSet, ReviewStatsView
+from .views import DashboardView
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
@@ -33,6 +34,7 @@ urlpatterns = [
         public_reschedule,
         name="public-reschedule"
     ),
+    path("api/dashboard/", DashboardView.as_view(), name="dashboard"),
     path("api/reviews/stats/", ReviewStatsView.as_view(), name="review-stats"),
     path('api/', include(router.urls)),
     re_path(r'^.*$', TemplateView.as_view(template_name='index.html'), name='react_app'),
