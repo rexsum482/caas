@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, decorators, response
+from rest_framework import viewsets, permissions, decorators, response, authentication
 from .models import Notification, Device
 from .serializers import NotificationSerializer
 from .pagination import NotificationPagination
@@ -8,10 +8,17 @@ from django.utils import timezone
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NotificationSerializer
+    authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = NotificationPagination
 
     def get_queryset(self):
+        is_admin = self.request.user.is_superuser
+        if is_admin:
+            return Notification.objects.filter(
+                expires_at__gt=timezone.now()
+            )
+
         return Notification.objects.filter(
             user=self.request.user,
             expires_at__gt=timezone.now()

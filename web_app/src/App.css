@@ -43,3 +43,51 @@
 .ant-table-tbody > tr:hover {
   background: #aaaaaa;
 }
+.mobile-row {
+  position: relative;
+}
+
+.mobile-row .mobile-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+
+.swipe-delete-cell {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.swipe-row {
+  touch-action: pan-y;
+  overflow: hidden;
+}
+
+.swipe-bg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  background: #ff4d4f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swipe-delete-icon {
+  color: white;
+  font-size: 20px;
+}
+
+.swipe-threshold {
+  position: absolute;
+  right: 60px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.7);
+}

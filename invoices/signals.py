@@ -1,22 +1,13 @@
-# invoices/signals.py
 from django.db import transaction
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
-
 from .models import Invoice
-
 
 @receiver(pre_save, sender=Invoice)
 def set_invoice_defaults(sender, instance: Invoice, **kwargs):
-    """
-    Runs ONLY on creation:
-    - Generate invoice number
-    - Set default amount
-    - Set default due date
-    """
     if instance.pk:
         return
 
@@ -24,13 +15,21 @@ def set_invoice_defaults(sender, instance: Invoice, **kwargs):
     prefix = today.strftime("%y%m%d")
 
     with transaction.atomic():
-        count_today = (
+        last_invoice = (
             Invoice.objects
             .select_for_update()
             .filter(issue_date=today)
-            .count()
+            .order_by("-invoice_number")
+            .first()
         )
-        instance.invoice_number = f"{prefix}{count_today + 1:03d}"
+
+        if last_invoice:
+            last_num = int(last_invoice.invoice_number[-3:])
+            next_num = last_num + 1
+        else:
+            next_num = 1
+
+        instance.invoice_number = f"{prefix}{next_num:03d}"
 
     instance.amount = Decimal("0.00")
     instance.due_date = today + timedelta(days=3)

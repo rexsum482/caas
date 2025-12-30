@@ -25,10 +25,13 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        customer = self.request.query_params.get("customer")
         user = self.request.user
         if user.is_superuser:
+            if customer:
+                return self.queryset.filter(customer__id=customer)
             return self.queryset
-        return self.queryset.filter(user=user)
+        return self.queryset.filter(user=user, customer__id=customer) if customer else self.queryset.filter(user=user)
 
     @decorators.action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):

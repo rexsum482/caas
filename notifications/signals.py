@@ -20,7 +20,7 @@ def invoice_status_notification(sender, instance, created, **kwargs):
     content = f"Invoice #{instance.invoice_number} was updated."
 
     notif = Notification.objects.create(
-        user=instance.customer.user,
+        invoice=instance,
         title=title,
         content=content,
     )
@@ -35,7 +35,7 @@ def payment_notification(sender, instance, created, **kwargs):
 
     invoice = instance.invoice
     notif = Notification.objects.create(
-        user=invoice.customer.user,
+        invoice=invoice,
         title="Payment Received",
         content=f"${instance.amount} payment applied to Invoice #{invoice.invoice_number}",
     )

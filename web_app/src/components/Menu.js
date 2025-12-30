@@ -8,6 +8,8 @@ import {
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import NotificationBell from "./Notification";
+import BANNER_LOGO from "../assets/rrr_banner.png";
+
 const { Header } = Layout;
 const config = window.DJANGO_CONTEXT;
 
@@ -68,16 +70,11 @@ const getSelectedKey = () => {
           }}
         >
           {/* Logo */}
-          <div
-            style={{
-              color: "white",
-              fontSize: 20,
-              fontWeight: "bold",
-            }}
-          >
-            {companyName}
-          </div>
-
+          <img
+            src={BANNER_LOGO}
+            alt="Reliable Roofing & Restoration"
+            style={{ height: 40 }}
+          />
           {/* Desktop Menu */}
           <div className="desktop-menu" style={{ flex: 1, display: "none" }}>
             <Menu

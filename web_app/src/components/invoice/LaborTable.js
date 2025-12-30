@@ -3,6 +3,7 @@ import { Table, Input, InputNumber, Popconfirm } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import useIsMobile from "../../hooks/useIsMobile";
 
 function LaborTable({
   labor,
@@ -19,59 +20,114 @@ function LaborTable({
   API,
   axios,
 }) {
-  return (
-<DndContext collisionDetection={closestCenter} onDragEnd={async ({ active, over }) => { if (!over || active.id === over.id) return; const items = [...invoice.parts]; const oldIndex = items.findIndex(i => i.id === active.id); const newIndex = items.findIndex(i => i.id === over.id); const reordered = arrayMove(items, oldIndex, newIndex); await Promise.all( reordered.map((item, idx) => axios.patch(`${API}/parts/${item.id}/`, { position: idx }, { headers }) ) ); fetchInvoice(); }} > 
-      <SortableContext items={invoice.parts.map(p => p.id)} strategy={verticalListSortingStrategy} > 
-    <Table
-      dataSource={labor}
-      rowKey="id"
-      pagination={false}
-      columns={[
-        {
-          title: "Description",
-          width: COL_DESC_WIDTH,
-          render: (_, l) => (
-            <Input
-              value={l.description}
-              onChange={e =>
-                onUpdate(l.id, "description", e.target.value)
-              }
-            />
-          ),
-        },
-        {
-          title: "Hours",
-          width: COL_QTY_WIDTH,
-          render: (_, l) => (
-            <InputNumber
-              min={0}
-              value={l.hours}
-              onChange={v => onUpdate(l.id, "hours", v)}
-            />
-          ),
-        },
-        {
-          title: "Rate",
-          width: COL_PRICE_WIDTH,
-          render: (_, l) => (
-            <InputNumber
-              min={0}
-              value={l.hourly_rate}
-              onChange={v => onUpdate(l.id, "hourly_rate", v)}
-            />
-          ),
-        },
-        {
-          title: "",
-          width: COL_ACTION_WIDTH,
-          render: (_, l) => (
-            <Popconfirm title="Delete labor?" onConfirm={() => onDelete(l.id)}>
-              <DeleteOutlined style={{ color: "red" }} />
+  const isMobile = useIsMobile();
+
+  const columns = [
+    {
+      title: "Description",
+      width: COL_DESC_WIDTH,
+      render: (_, l) => (
+        <div style={{ position: "relative" }}>
+          <Input
+            value={l.description}
+            onChange={e =>
+              onUpdate(l.id, "description", e.target.value)
+            }
+          />
+
+          {isMobile && (
+            <Popconfirm
+              title="Delete labor?"
+              onConfirm={() => onDelete(l.id)}
+            >
+              <DeleteOutlined
+                className="mobile-delete"
+                style={{ color: "red", cursor: "pointer" }}
+              />
             </Popconfirm>
-          ),
-        },
-      ]}
-    />
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Hours",
+      width: COL_QTY_WIDTH,
+      render: (_, l) => (
+        <InputNumber
+          min={0}
+          value={l.hours}
+          onChange={v => onUpdate(l.id, "hours", v)}
+        />
+      ),
+    },
+    {
+      title: "Rate",
+      width: COL_PRICE_WIDTH,
+      render: (_, l) => (
+        <InputNumber
+          min={0}
+          value={l.hourly_rate}
+          onChange={v => onUpdate(l.id, "hourly_rate", v)}
+        />
+      ),
+    },
+  ];
+
+  // ✅ Desktop / tablet delete column
+  if (!isMobile) {
+    columns.push({
+      title: "",
+      width: COL_ACTION_WIDTH,
+      align: "center",
+      render: (_, l) => (
+        <Popconfirm
+          title="Delete labor?"
+          onConfirm={() => onDelete(l.id)}
+        >
+          <DeleteOutlined
+            style={{ color: "red", cursor: "pointer" }}
+          />
+        </Popconfirm>
+      ),
+    });
+  }
+
+  return (
+    <DndContext
+      collisionDetection={closestCenter}
+      onDragEnd={async ({ active, over }) => {
+        if (!over || active.id === over.id) return;
+
+        const items = [...invoice.labor];
+        const oldIndex = items.findIndex(i => i.id === active.id);
+        const newIndex = items.findIndex(i => i.id === over.id);
+
+        const reordered = arrayMove(items, oldIndex, newIndex);
+
+        await Promise.all(
+          reordered.map((item, idx) =>
+            axios.patch(
+              `${API}/labor/${item.id}/`,
+              { position: idx },
+              { headers }
+            )
+          )
+        );
+
+        fetchInvoice();
+      }}
+    >
+      <SortableContext
+        items={invoice.labor.map(l => l.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <Table
+          dataSource={labor}
+          rowKey="id"
+          pagination={false}
+          columns={columns}
+          rowClassName={() => (isMobile ? "mobile-row" : "")}
+        />
       </SortableContext>
     </DndContext>
   );

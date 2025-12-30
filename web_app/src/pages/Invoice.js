@@ -19,8 +19,8 @@ import { useParams } from "react-router-dom";
 import api from "../components/axios";
 import axios from "axios";
 import dayjs from "dayjs";
-import PartsTable from "../components/invoice/PartsTable";
-import LaborTable from "../components/invoice/LaborTable";
+import PartsTable from "../components/tables/PartsTable";
+import LaborTable from "../components/tables/LaborTable";
 import AddPartRow from "../components/invoice/AddPartRow";
 import AddLaborRow from "../components/invoice/AddLaborRow";
 import InvoiceAdjustments from "../components/invoice/InvoiceAdjustments";
@@ -65,10 +65,10 @@ export default function Invoice() {
     Authorization: `Token ${token}`,
     'X-CSRFToken': CSRFToken,
   };
-  const COL_DESC_WIDTH = isMobile ? 220 : 460;
-  const COL_QTY_WIDTH = isMobile ? 60 : 80;
-  const COL_PRICE_WIDTH = isMobile ? 90 : 120;
-  const COL_ACTION_WIDTH = 60;
+  const COL_DESC_WIDTH = isMobile ? 210 : 460;
+  const COL_QTY_WIDTH = isMobile ? 50 : 80;
+  const COL_PRICE_WIDTH = isMobile ? 80 : 120;
+  const COL_ACTION_WIDTH = 50;
   const fetchInvoice = async () => {
     setLoading(true);
 
@@ -151,11 +151,6 @@ const updatePart = (partId, field, value) => {
   debouncedPartSave(partId, field, value);
 };
 
-  const deletePart = async (partId) => {
-    await axios.delete(`${API}/parts/${partId}/`, { headers });
-    fetchInvoice();
-  };
-
   /* ---------- LABOR ---------- */
 
 const addLabor = async (labor) => {
@@ -180,11 +175,6 @@ const addLabor = async (labor) => {
       { [field]: value },
       { headers }
     );
-    fetchInvoice();
-  };
-
-  const deleteLabor = async (laborId) => {
-    await axios.delete(`${API}/labor/${laborId}/`, { headers });
     fetchInvoice();
   };
 
@@ -264,8 +254,8 @@ const updateInvoice = (field, value) => {
       loading={loading}
       style={{
         maxWidth: 1200,
-        margin: "auto",
-        padding: isMobile ? 8 : 24,
+        margin: isMobile ? 0 : "auto",
+        padding: isMobile ? 0 : 24,
       }}
     >
       <Space direction="vertical" style={{ width: "100%" }} size="large">
@@ -302,21 +292,20 @@ const updateInvoice = (field, value) => {
 
         {/* ---------- PARTS ---------- */}
         <Title level={4}>Parts</Title>
-<PartsTable
-  parts={invoice.parts}
-  onUpdate={updatePart}
-  onDelete={deletePart}
-  API={API}
-  arrayMove={arrayMove}
-  axios={axios}
-  fetchInvoice={fetchInvoice}
-  headers={headers}
-  invoice={invoice}
-  COL_ACTION_WIDTH={COL_ACTION_WIDTH}
-  COL_DESC_WIDTH={COL_DESC_WIDTH}
-  COL_PRICE_WIDTH={COL_PRICE_WIDTH}
-  COL_QTY_WIDTH={COL_QTY_WIDTH}
-/>
+        <PartsTable
+          invoice={invoice}
+          onUpdate={updatePart}
+          fetchInvoice={fetchInvoice}
+          headers={headers}
+          API={API}
+          axios={axios}
+          arrayMove={(arr, from, to) => {
+            const copy = [...arr];
+            const item = copy.splice(from, 1)[0];
+            copy.splice(to, 0, item);
+            return copy;
+          }}
+        />
 <Row justify="end" style={{ marginTop: 8 }}>
   <Col>
     <Text strong>Total Parts Cost:</Text>{" "}
@@ -335,21 +324,20 @@ const updateInvoice = (field, value) => {
         <Divider />
         {/* ---------- LABOR ---------- */}
         <Title level={4}>Labor</Title>
-<LaborTable
-  labor={invoice.labor}
-  onUpdate={updateLabor}
-  onDelete={deleteLabor}
-  API={API}
-  arrayMove={arrayMove}
-  axios={axios}
-  fetchInvoice={fetchInvoice}
-  headers={headers}
-  invoice={invoice}
-  COL_ACTION_WIDTH={COL_ACTION_WIDTH}
-  COL_DESC_WIDTH={COL_DESC_WIDTH}
-  COL_PRICE_WIDTH={COL_PRICE_WIDTH}
-  COL_QTY_WIDTH={COL_QTY_WIDTH}
-/>
+        <LaborTable
+          invoice={invoice}
+          onUpdate={updateLabor}
+          fetchInvoice={fetchInvoice}
+          headers={headers}
+          API={API}
+          axios={axios}
+          arrayMove={(arr, from, to) => {
+            const copy = [...arr];
+            const item = copy.splice(from, 1)[0];
+            copy.splice(to, 0, item);
+            return copy;
+          }}
+        />
 <Row justify="end" style={{ marginTop: 8 }}>
   <Col>
     <Text strong>Total Labor Cost:</Text>{" "}

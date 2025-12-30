@@ -9,6 +9,8 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = [
             "id",
+            "user",
+            "invoice",
             "title",
             "content",
             "is_read",

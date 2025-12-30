@@ -2,8 +2,9 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
-User = settings.AUTH_USER_MODEL
-
+from invoices.models import Invoice
+from django.contrib.auth import get_user_model
+User = get_user_model()
 class Notification(models.Model):
     TYPE_CHOICES = [
         ("A", "Appointment"),
@@ -15,11 +16,8 @@ class Notification(models.Model):
         ("P", "Payment"),
         ("U", "Update"),
     ]
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="notifications"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
     title = models.CharField(max_length=255)
     content = models.TextField()
     is_read = models.BooleanField(default=False)
