@@ -1,14 +1,14 @@
 from django.db import models
 
 class Message(models.Model):
-    sender = models.CharField(max_length=128)
-    recipient = models.CharField(max_length=128)
+    sender = models.EmailField()
+    subject = models.CharField(max_length=255)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Message from {self.sender} to {self.recipient} at {self.timestamp}"
+        return f"Message from {self.sender} at {self.timestamp}"
 
     class Meta:
         ordering = ['-timestamp']
@@ -16,7 +16,6 @@ class Message(models.Model):
         verbose_name_plural = "Messages"
         indexes = [
             models.Index(fields=['sender']),
-            models.Index(fields=['recipient']),
             models.Index(fields=['timestamp']),
         ]   
     def mark_as_read(self):

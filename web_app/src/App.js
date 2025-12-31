@@ -156,9 +156,9 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             {/* AUTH */}
             <Route
               path="/login"
-              element={<Login setIsAuthenticated={setIsAuthenticated} />}
+              element={isAuthenticated ? isAdmin ? <AdminPage /> : <Home /> : <Login setIsAuthenticated={setIsAuthenticated} />}
             />
-            <Route path="/signup" element={<Signup />} />
+            <Route path="/signup" element={isAuthenticated ? isAdmin ? <AdminPage /> : <Home /> : <Signup />} />
             <Route path="/contact" element={<ContactUs />} />
             {/* CUSTOMERS */}
             <Route path="/customers/add" element={<AddCustomer />} />

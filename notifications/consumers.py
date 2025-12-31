@@ -6,20 +6,20 @@ logger = logging.getLogger("notifications.ws")
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
-        print("🔥 WS CONNECT ATTEMPT", self.scope)
-
         user = self.scope.get("user")
 
         if not user or user.is_anonymous:
-            print("❌ WS REJECTED (anonymous)")
             await self.close()
             return
 
-        print(f"✅ WS ACCEPTED user={user.id}")
+        email = self.scope['url_route']['kwargs']['email']
 
-        self.group_name = f"user_{user.id}"
+        self.group_name = f"{email}"  # SAME as push_notification()
+
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+        print(f"🔔 WebSocket joined group => {self.group_name}")
+
 
     async def disconnect(self, code):
         logger.info(

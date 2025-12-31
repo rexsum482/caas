@@ -9,7 +9,8 @@ def push_notification(notification):
     serializer = NotificationSerializer(notification)
 
     async_to_sync(channel_layer.group_send)(
-        f"user_{notification.user_id}",
+        group=f"{notification.invoice.customer.email}",
+        message=
         {
             "type": "notify",
             "data": serializer.data,

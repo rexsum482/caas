@@ -31,14 +31,14 @@ export default function AdminPage() {
       });
   }, []);
 
-  if (loading) return <Spin size="large" style={{ marginTop: 30 }} />;
+  if (loading) return <div style={{ textAlign: "center", paddingTop: 50 }}><Spin size="large" /></div>;
 
   const monthlyRevenueConfig = {
     data: data.revenue.revenue_last_12_months,
     xField: "month",
     yField: "total",
     smooth: true,
-    label: false,
+    autoFit: true,
     tooltip: { formatter: (d) => ({ name: "Revenue", value: currency(d.total) }) }
   };
 
@@ -47,6 +47,7 @@ export default function AdminPage() {
     xField: "date",
     yField: "total",
     columnWidthRatio: 0.6,
+    autoFit: true,
     tooltip: { formatter: (d) => ({ name: "Revenue", value: currency(d.total) }) }
   };
 
@@ -54,36 +55,62 @@ export default function AdminPage() {
     data: data.charts.upcoming_appointments,
     xField: "date",
     yField: "count",
-    point: { size: 4 },
     smooth: true,
+    point: { size: 4 },
+    autoFit: true,
     tooltip: { formatter: (d) => ({ name: "Appointments", value: d.count }) }
   };
 
   return (
-    <div style={{ padding: 25 }}>
-      <Title level={2}>📊 Dashboard Overview</Title>
+    <div style={{ padding: "20px", maxWidth: 1400, margin: "0 auto" }}>
+      <Title level={2} style={{ marginBottom: 25, fontWeight: 600 }}>
+        📊 Dashboard Overview
+      </Title>
 
-      {/* Top Stats */}
-      <Row gutter={16} style={{ marginBottom: 20 }}>
-        <Col span={6}><Card><Text>Total Revenue</Text><Title level={3}>{currency(data.revenue.total_revenue)}</Title></Card></Col>
-        <Col span={6}><Card><Text>Revenue This Month</Text><Title level={3}>{currency(data.revenue.revenue_this_month)}</Title></Card></Col>
-        <Col span={6}><Card><Text>Invoices This Week</Text><Title level={3}>{data.counts.weekly_invoices}</Title></Card></Col>
-        <Col span={6}><Card><Text>Appointments This Week</Text><Title level={3}>{data.counts.weekly_appointments}</Title></Card></Col>
+      {/* Top Stat Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Col xs={24} sm={12} md={12} lg={6}>
+          <Card className="stat-card">
+            <Text type="secondary">Total Revenue</Text>
+            <Title level={3} style={{ margin: "6px 0" }}>{currency(data.revenue.total_revenue)}</Title>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={12} lg={6}>
+          <Card className="stat-card">
+            <Text type="secondary">Revenue This Month</Text>
+            <Title level={3} style={{ margin: "6px 0" }}>{currency(data.revenue.revenue_this_month)}</Title>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={12} lg={6}>
+          <Card className="stat-card">
+            <Text type="secondary">Invoices This Week</Text>
+            <Title level={3} style={{ margin: "6px 0" }}>{data.counts.weekly_invoices}</Title>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={12} lg={6}>
+          <Card className="stat-card">
+            <Text type="secondary">Appointments This Week</Text>
+            <Title level={3} style={{ margin: "6px 0" }}>{data.counts.weekly_appointments}</Title>
+          </Card>
+        </Col>
       </Row>
 
-      {/* Revenue Trend 12 Months */}
+      {/* Monthly Revenue Trend */}
       <Card title="📈 Revenue Over Last 12 Months" style={{ marginBottom: 20 }}>
-        <Line {...monthlyRevenueConfig} height={260} />
+        <Line {...monthlyRevenueConfig} height={270} />
       </Card>
 
-      {/* Monthly Invoice Revenue */}
+      {/* Invoice Revenue */}
       <Card title="💰 Invoice Revenue This Month" style={{ marginBottom: 20 }}>
-        <Column {...invoiceChartConfig} height={260} />
+        <Column {...invoiceChartConfig} height={270} />
       </Card>
 
-      {/* Appointments Trend */}
-      <Card title="📅 Upcoming Appointments (Next 30 Days)">
-        <Area {...appointmentChartConfig} height={260} />
+      {/* Upcoming Appointments */}
+      <Card title="📅 Upcoming Appointments (Next 30 Days)" style={{ marginBottom: 20 }}>
+        <Area {...appointmentChartConfig} height={270} />
       </Card>
     </div>
   );

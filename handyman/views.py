@@ -2,12 +2,10 @@ from appointments.serializers import AppointmentSerializer
 from customers.serializers import CustomerSerializer
 from invoices.serializers import InvoiceSerializer
 from reviews.serializers import GoogleReviewSerializer
-
 from invoices.models import Invoice
 from appointments.models import Appointment
 from customers.models import Customer
 from reviews.models import GoogleReview
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import authentication, permissions

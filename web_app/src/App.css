@@ -91,3 +91,12 @@
   width: 2px;
   background: rgba(255, 255, 255, 0.7);
 }
+
+.stat-card {
+  border-radius: 12px;
+  transition: 0.2s ease;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}

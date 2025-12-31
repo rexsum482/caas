@@ -1,51 +1,24 @@
 import { Badge, Drawer, List, Button, Modal } from "antd";
 import { BellOutlined } from "@ant-design/icons";
-import { useEffect, useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "./axios";
-import { WEBSOCKET } from "../data/constants";
+import { useNotifications } from "../context/NotificationContext";
 
 const NotificationBell = ({ isAuthenticated, isAdmin }) => {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unread, setUnread] = useState(0);
-  const socketRef = useRef(null);
   const navigate = useNavigate();
 
-  /* =====================
-     API helpers
-     ===================== */
+  const {
+    notifications,
+    unread,
+    markRead,
+    markAllRead,
+    fetchNotifications
+  } = useNotifications();
 
-  const fetchNotifications = async () => {
-    const res = await api.get("/notifications/");
-    setNotifications(res.data.results || []);
-  };
-
-  const fetchUnread = async () => {
-    const res = await api.get("/notifications/unread_count/");
-    setUnread(res.data.unread || 0);
-  };
-
-  const markRead = async (id) => {
-    await api.post(`/notifications/${id}/mark_read/`);
-    setUnread((u) => Math.max(0, u - 1));
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-    );
-  };
-
-  const markAllRead = async () => {
-    await api.post("/notifications/mark_all_read/");
-    setUnread(0);
-    fetchNotifications();
-  };
-
-  /* =====================
-     Notification Actions
-     ===================== */
+  if (!isAuthenticated) return null;
 
   const extractId = (key, content) => {
-    // TEMP until metadata exists
     const match = content?.match(new RegExp(`${key}:(\\d+)`));
     return match ? match[1] : null;
   };
@@ -56,86 +29,24 @@ const NotificationBell = ({ isAuthenticated, isAdmin }) => {
     const invoiceId = extractId("invoice", n.content);
     const appointmentId = extractId("appointment", n.content);
 
-    /* ---------- ADMIN ---------- */
     if (isAdmin) {
       switch (n.type) {
-        case "A": // Appointment
-        case "R": // Reminder
-          navigate("/appointments");
-          return;
-
-        case "P": // Payment
-        case "U": // Update
-          if (invoiceId) navigate(`/invoices/${invoiceId}`);
-          return;
-
-        case "M": // Message
-          Modal.info({ title: n.title, content: n.content });
-          return;
-
-        default:
-          return; // I, S, G should not exist for admin
+        case "A":
+        case "R": navigate("/appointments"); return;
+        case "P":
+        case "U": if (invoiceId) navigate(`/invoices/${invoiceId}`); return;
+        case "M": Modal.info({ title: n.title, content: n.content }); return;
+        default: return;
       }
     }
 
-    /* ---------- CUSTOMER ---------- */
     switch (n.type) {
       case "I":
       case "P":
-      case "U":
-        if (invoiceId) navigate(`/invoices/${invoiceId}`);
-        return;
-
-      case "A":
-      case "R":
-      case "S":
-      case "G":
-      case "M":
-        Modal.info({ title: n.title, content: n.content });
-        return;
-
-      default:
-        return;
+      case "U": if (invoiceId) navigate(`/invoices/${invoiceId}`); return;
+      default: Modal.info({ title: n.title, content: n.content }); return;
     }
   };
-
-  /* =====================
-     WebSocket
-     ===================== */
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setNotifications([]);
-      setUnread(0);
-      socketRef.current?.close();
-      return;
-    }
-
-    fetchUnread();
-
-    const token = localStorage.getItem("authToken");
-    if (!token) return;
-
-    const socket = new WebSocket(
-      `${WEBSOCKET}/ws/notifications/?token=${token}`
-    );
-
-    socketRef.current = socket;
-
-    socket.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      setNotifications((prev) => [data, ...prev]);
-      setUnread((prev) => prev + 1);
-    };
-
-    return () => socket.close();
-  }, [isAuthenticated]);
-
-  if (!isAuthenticated) return null;
-
-  /* =====================
-     UI
-     ===================== */
 
   return (
     <>
@@ -154,11 +65,7 @@ const NotificationBell = ({ isAuthenticated, isAdmin }) => {
         placement="right"
         open={open}
         onClose={() => setOpen(false)}
-        extra={
-          <Button size="small" onClick={markAllRead}>
-            Mark all read
-          </Button>
-        }
+        extra={<Button size="small" onClick={markAllRead}>Mark all read</Button>}
       >
         <List
           locale={{ emptyText: "No notifications" }}
@@ -166,10 +73,7 @@ const NotificationBell = ({ isAuthenticated, isAdmin }) => {
           renderItem={(item) => (
             <List.Item
               onClick={() => handleNotificationClick(item)}
-              style={{
-                cursor: "pointer",
-                opacity: item.is_read ? 0.6 : 1,
-              }}
+              style={{ cursor: "pointer", opacity: item.is_read ? 0.6 : 1 }}
             >
               <List.Item.Meta
                 title={item.title}

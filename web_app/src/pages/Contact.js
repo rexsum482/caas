@@ -6,32 +6,30 @@ import { WEBPAGE } from "../data/constants";
 import FormItem from "antd/es/form/FormItem";
 const { TextArea } = Input;
 
-const API_BASE = WEBPAGE + '/api'; // adjust if needed
+const API_BASE = WEBPAGE + '/api';
 const config = window.DJANGO_CONTEXT;
 
 export default function ContactUs() {
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
-  const adminEmail = config.adminEmail
 
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("authToken");
 
   const handleSubmit = async (values) => {
     setLoading(true);
 
     try {
-      // 1️⃣ Create message
       const messageRes = await axios.post(
         `${API_BASE}/messages/`,
         {
           sender: values.email,
-          recipient: adminEmail,
+          subject: values.subject || "No Subject",
           content: values.content,
         },
         {
-          headers: {
+          headers: token ? {
             Authorization: `Token ${token}`
-          },
+          } : {},
         }
       );
 
@@ -71,6 +69,9 @@ export default function ContactUs() {
         >
           <Input type="email" />
         </FormItem>
+        <Form.Item label="Subject" name="subject">
+          <Input />
+        </Form.Item>
         <Form.Item
           label="Message"
           name="content"

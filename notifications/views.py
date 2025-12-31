@@ -5,6 +5,7 @@ from .pagination import NotificationPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
+from django.db.models import Q
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NotificationSerializer
@@ -13,17 +14,16 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = NotificationPagination
 
     def get_queryset(self):
-        is_admin = self.request.user.is_superuser
-        if is_admin:
-            return Notification.objects.filter(
-                expires_at__gt=timezone.now()
-            )
+        user = self.request.user
+
+        if user.is_superuser:
+            return Notification.objects.all()
 
         return Notification.objects.filter(
-            user=self.request.user,
-            expires_at__gt=timezone.now()
-        )
-
+            Q(user=user) |
+            Q(invoice__customer__email=user.email)
+        ).distinct()
+    
     @decorators.action(detail=True, methods=["post"])
     def mark_read(self, request, pk=None):
         notification = self.get_object()

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Layout, Menu, Button, Drawer } from "antd";
+import { Layout, Menu, Button, Drawer, Badge } from "antd";
 import {
   LogoutOutlined,
   MenuOutlined,
@@ -8,6 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import NotificationBell from "./Notification";
+import { useNotifications } from "../context/NotificationContext";
 import BANNER_LOGO from "../assets/rrr_banner.png";
 
 const { Header } = Layout;
@@ -17,6 +18,7 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { unread } = useNotifications();
 
   const companyName = config.companyName;
   const accentColor = config.accentColor;
@@ -26,33 +28,30 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
     navigate("/login");
     window.location.reload();
   };
-const navigateAndClose = (path) => {
-  navigate(path);
 
-  // allow navigation to start before drawer closes
-  setTimeout(() => {
-    setMobileOpen(false);
-  }, 150);
-};
-const getSelectedKey = () => {
-  const path = location.pathname;
-  
-  const routeMap = [
-    { key: "home", match: /^\/(home)?$/ },
-    { key: "customers", match: /^\/customers/ },
-    { key: "invoices", match: /^\/invoices/ },
-    { key: "appointments", match: /^\/appointments/ },
-    { key: "contact", match: /^\/contact/ },
-    { key: "schedule", match: /^\/schedule/ },
-    { key: "login", match: /^\/login/ },
-    { key: "signup", match: /^\/signup/ },
-    { key: "about", match: /^\/about/ },
-  ];
+  const navigateAndClose = (path) => {
+    navigate(path);
+    setTimeout(() => setMobileOpen(false), 150);
+  };
 
-  const match = routeMap.find(r => r.match.test(path));
-  return match ? match.key : "";
-};
+  const getSelectedKey = () => {
+    const path = location.pathname;
 
+    const routeMap = [
+      { key: "home", match: /^\/(home)?$/ },
+      { key: "customers", match: /^\/customers/ },
+      { key: "invoices", match: /^\/invoices/ },
+      { key: "appointments", match: /^\/appointments/ },
+      { key: "contact", match: /^\/contact/ },
+      { key: "schedule", match: /^\/schedule/ },
+      { key: "login", match: /^\/login/ },
+      { key: "signup", match: /^\/signup/ },
+      { key: "about", match: /^\/about/ },
+    ];
+
+    const match = routeMap.find((r) => r.match.test(path));
+    return match ? match.key : "";
+  };
 
   return (
     <>
@@ -70,12 +69,9 @@ const getSelectedKey = () => {
           }}
         >
           {/* Logo */}
-          <img
-            src={BANNER_LOGO}
-            alt="Reliable Roofing & Restoration"
-            style={{ height: 40 }}
-          />
-          {/* Desktop Menu */}
+          <img src={BANNER_LOGO} alt="Reliable Roofing & Restoration" style={{ height: 40 }} />
+
+          {/* Main menu desktop */}
           <div className="desktop-menu" style={{ flex: 1, display: "none" }}>
             <Menu
               theme="dark"
@@ -89,178 +85,82 @@ const getSelectedKey = () => {
 
               {isAdmin ? (
                 <>
-                  <Menu.Item key="customers">
-                    <a href="/customers">Customers</a>
-                  </Menu.Item>
-                  <Menu.Item key="invoices">
-                    <a href="/invoices">Invoices</a>
-                  </Menu.Item>
-                  <Menu.Item key="appointments">
-                    <a href="/appointments">Appointments</a>
-                  </Menu.Item>
+                  <Menu.Item key="customers"><a href="/customers">Customers</a></Menu.Item>
+                  <Menu.Item key="invoices"><a href="/invoices">Invoices</a></Menu.Item>
+                  <Menu.Item key="appointments"><a href="/appointments">Appointments</a></Menu.Item>
                 </>
               ) : (
                 <>
-                  <Menu.Item key="contact">
-                    <a href="/contact">Contact</a>
-                  </Menu.Item>
-                  <Menu.Item key="schedule">
-                    <a href="/schedule">Schedule</a>
-                  </Menu.Item>
-                  <Menu.Item key="about">
-                    <a href="/about">About</a>
-                  </Menu.Item>
+                  <Menu.Item key="contact"><a href="/contact">Contact</a></Menu.Item>
+                  <Menu.Item key="schedule"><a href="/schedule">Schedule</a></Menu.Item>
+                  <Menu.Item key="about"><a href="/about">About</a></Menu.Item>
                 </>
               )}
             </Menu>
           </div>
 
-          {/* Right-side buttons */}
+          {/* Right section */}
           <div style={{ display: "flex", gap: 10 }}>
-            {isAuthenticated && <NotificationBell isAuthenticated={isAuthenticated} />}
+
+            {/* Notification bell - now global */}
+            {isAuthenticated && <NotificationBell isAuthenticated={isAuthenticated} isAdmin={isAdmin} />}
+
             {!isAuthenticated ? (
               <>
-                <Button
-                  type="default"
-                  icon={<LoginOutlined />}
-                  onClick={() => navigate("/login")}
-                  className="desktop-menu"
-                >
+                <Button type="default" icon={<LoginOutlined />} onClick={() => navigate("/login")} className="desktop-menu">
                   Login
                 </Button>
-                <Button
-                  type="primary"
-                  icon={<UserAddOutlined />}
-                  onClick={() => navigate("/signup")}
-                  className="desktop-menu"
-                >
+                <Button type="primary" icon={<UserAddOutlined />} onClick={() => navigate("/signup")} className="desktop-menu">
                   Sign Up
                 </Button>
               </>
             ) : (
-              <Button
-                type="primary"
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-                className="desktop-menu"
-              >
+              <Button type="primary" icon={<LogoutOutlined />} onClick={handleLogout} className="desktop-menu">
                 Logout
               </Button>
             )}
 
-            {/* Mobile menu button */}
-            <Button
-              type="text"
-              icon={<MenuOutlined style={{ fontSize: 22, color: "white" }} />}
-              className="mobile-menu-button"
-              onClick={() => setMobileOpen(true)}
-            />
+            {/* Mobile menu toggle */}
+            <Button type="text" icon={<MenuOutlined style={{ fontSize: 22, color: "white" }} />} className="mobile-menu-button" onClick={() => setMobileOpen(true)} />
           </div>
         </Header>
       </Layout>
 
-<Drawer
-  title={companyName}
-  placement="right"
-  onClose={() => setMobileOpen(false)}
-  open={mobileOpen}
->
-  <Menu
-    mode="inline"
-    selectedKeys={[getSelectedKey()]}
-    onClick={() => setMobileOpen(false)}
-  >
-    <Menu.Item key="home" onClick={() => navigate("/")}>
-      Home
-    </Menu.Item>
+      {/* Mobile Drawer */}
+      <Drawer title={companyName} placement="right" onClose={() => setMobileOpen(false)} open={mobileOpen}>
+        <Menu mode="inline" selectedKeys={[getSelectedKey()]} onClick={() => setMobileOpen(false)}>
+          <Menu.Item key="home" onClick={() => navigate("/")}>Home</Menu.Item>
 
-    {isAdmin ? (
-      <>
-        <Menu.Item
-          key="customers"
-          onClick={() => navigateAndClose("/customers")}
-        >
-          Customers
-        </Menu.Item>
+          {isAdmin ? (
+            <>
+              <Menu.Item key="customers" onClick={() => navigateAndClose("/customers")}>Customers</Menu.Item>
+              <Menu.Item key="invoices" onClick={() => navigateAndClose("/invoices")}>Invoices</Menu.Item>
+              <Menu.Item key="appointments" onClick={() => navigateAndClose("/appointments")}>Appointments</Menu.Item>
+            </>
+          ) : (
+            <>
+              <Menu.Item key="contact" onClick={() => navigateAndClose("/contact")}>Contact</Menu.Item>
+              <Menu.Item key="schedule" onClick={() => navigateAndClose("/schedule")}>Schedule</Menu.Item>
+              <Menu.Item key="about" onClick={() => navigateAndClose("/about")}>About</Menu.Item>
+            </>
+          )}
 
-        <Menu.Item
-          key="invoices"
-          onClick={() => navigateAndClose("/invoices")}
-        >
-          Invoices
-        </Menu.Item>
-
-        <Menu.Item
-          key="appointments"
-          onClick={() => navigateAndClose("/appointments")}
-        >
-          Appointments
-        </Menu.Item>
-      </>
-    ) : (
-      <>
-        <Menu.Item
-          key="contact"
-          onClick={() => navigateAndClose("/contact")}
-        >
-          Contact
-        </Menu.Item>
-
-        <Menu.Item
-          key="schedule"
-          onClick={() => navigateAndClose("/schedule")}
-        >
-          Schedule
-        </Menu.Item>
-
-        <Menu.Item
-          key="about"
-          onClick={() => navigateAndClose("/about")}
-        >
-          About
-        </Menu.Item>
-      </>
-    )}
-
-    {!isAuthenticated ? (
-      <>
-        <Menu.Item
-          key="login"
-          icon={<LoginOutlined />}
-          onClick={() => navigateAndClose("/login")}
-        >
-          Login
-        </Menu.Item>
-
-        <Menu.Item
-          key="signup"
-          icon={<UserAddOutlined />}
-          onClick={() => navigateAndClose("/signup")}
-        >
-          Sign Up
-        </Menu.Item>
-      </>
-    ) : (
-      <Menu.Item
-        key="logout"
-        icon={<LogoutOutlined />}
-        onClick={handleLogout}
-      >
-        Logout
-      </Menu.Item>
-    )}
-  </Menu>
-</Drawer>
+          {!isAuthenticated ? (
+            <>
+              <Menu.Item key="login" icon={<LoginOutlined />} onClick={() => navigateAndClose("/login")}>Login</Menu.Item>
+              <Menu.Item key="signup" icon={<UserAddOutlined />} onClick={() => navigateAndClose("/signup")}>Sign Up</Menu.Item>
+            </>
+          ) : (
+            <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>Logout</Menu.Item>
+          )}
+        </Menu>
+      </Drawer>
 
       {/* Responsive rules */}
       <style>{`
         @media (min-width: 768px) {
-          .desktop-menu {
-            display: block !important;
-          }
-          .mobile-menu-button {
-            display: none !important;
-          }
+          .desktop-menu { display: block !important; }
+          .mobile-menu-button { display: none !important; }
         }
       `}</style>
     </>
