@@ -85,6 +85,7 @@ const deletePayment = async (paymentId) => {
 };
 
 const togglePaid = async () => {
+  setInvoice(prev => ({ ...prev, paid: !prev.paid }));
   await api.post(`/invoices/${id}/mark_paid/`);
   message.success(invoice.paid ? "Marked unpaid" : "Marked paid");
   fetchInvoice();
@@ -99,7 +100,7 @@ const submitPayment = async () => {
     `${API}/payments/`,
     {
       invoice: id,
-      payment_date: dayjs().format("YYYY-MM-DD"), // 👈 added
+      payment_date: dayjs().format("YYYY-MM-DD"),
       ...payment,
     },
     { headers }

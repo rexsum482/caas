@@ -1,11 +1,9 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
-from rest_framework.authtoken.models import Token
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 import uuid
-from django.core.mail import send_mail
-from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
@@ -85,29 +83,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 class EmailVerificationToken(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="verification_token")
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="verification_token"
+    )
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return self.created_at < timezone.now() - timedelta(days=1)
 
     def __str__(self):
         return f"Verification token for {self.user.username}"
 
-
-@receiver(post_save, sender=CustomUser)
-def handle_user_creation(sender, instance=None, created=False, **kwargs):
-    if created:
-        Token.objects.create(user=instance)  # keep DRF token
-
-        # create a verification token
-        verification_token, _ = EmailVerificationToken.objects.get_or_create(user=instance)
-
-        # build verification URL (adjust frontend/backend domain as needed)
-        verification_link = f"{settings.FRONTEND_URL}/verify-email/{verification_token.token}/"
-
-        send_mail(
-            subject="Verify your email address",
-            message=f"Hello {instance.username}, please verify your email by clicking this link: {verification_link}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[instance.email],
-            fail_silently=False,
-        )

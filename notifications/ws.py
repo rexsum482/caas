@@ -1,27 +1,19 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+import hashlib
 from .serializers import NotificationSerializer
-from .push import send_mobile_push
-from .models import Device
+
+def safe_group(email):
+    return "user_" + hashlib.sha256(email.lower().encode()).hexdigest()[:32]
 
 def push_notification(notification):
-    channel_layer = get_channel_layer()
-    serializer = NotificationSerializer(notification)
+    channel = get_channel_layer()
+    group = safe_group(notification.invoice.customer.email)
 
-    async_to_sync(channel_layer.group_send)(
-        group=f"{notification.invoice.customer.email}",
-        message=
+    async_to_sync(channel.group_send)(
+        group,
         {
-            "type": "notify",
-            "data": serializer.data,
+        "type": "notify", 
+        "data": NotificationSerializer(notification).data
         }
     )
-
-    devices = Device.objects.filter(user=notification.user)
-    for device in devices:
-        send_mobile_push(
-            device.token,
-            notification.title,
-            notification.content,
-            {"notification_id": str(notification.id)}
-        )

@@ -175,15 +175,17 @@ class Payment(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        self.invoice.update_payment_status()
+        self.apply_to_invoice()
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
-        self.invoice.update_payment_status()
+        self.apply_to_invoice()
 
     def apply_to_invoice(self):
         if self.amount >= self.invoice.amount:
             self.invoice.mark_as_paid()
+        else:
+            self.invoice.mark_as_unpaid()
         self.invoice.save()
 
     def refund(self):

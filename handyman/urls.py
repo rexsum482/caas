@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.routers import DefaultRouter
-from users.views import UserViewSet
+from users.views import UserViewSet, verify_email, resend_verification_email
 from django.views.generic import TemplateView
 from msgs.views import MessageViewSet, AttachmentViewSet
 from invoices.views import InvoiceViewSet, PaymentViewSet, LaborViewSet, PartViewSet, CustomerInvoiceViewSet
@@ -10,7 +10,7 @@ from customers.views import CustomerViewSet
 from appointments.views import AppointmentViewSet, public_reschedule
 from notifications.views import NotificationViewSet
 from reviews.views import GoogleReviewViewSet, ReviewStatsView
-from .views import DashboardView
+from .views import DashboardView, CustomAuthToken
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
@@ -28,11 +28,21 @@ router.register("reviews", GoogleReviewViewSet, basename="review")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("auth/", ObtainAuthToken.as_view(), name="api_token_auth"),
+    path("auth/", CustomAuthToken.as_view(), name="api_token_auth"),
     path(
         "appointments/reschedule/<uuid:token>/",
         public_reschedule,
         name="public-reschedule"
+    ),
+    path(
+        "api/users/verify-email/<uuid:token>/",
+        verify_email,
+        name="verify-email"
+    ),
+    path(
+        "api/users/resend-verification/",
+        resend_verification_email,
+        name="resend-verification"
     ),
     path("api/dashboard/", DashboardView.as_view(), name="dashboard"),
     path("api/reviews/stats/", ReviewStatsView.as_view(), name="review-stats"),

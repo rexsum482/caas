@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { Form, Input, Button, Card, message } from "antd";
+import { useNavigate } from "react-router-dom";
+import { WEBPAGE } from "../data/constants";
 
 const Signup = () => {
   const [username, setUsername] = useState("");
-  const [email, setEmail]     = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async () => {
     if (!username || !email || !password) {
@@ -14,81 +18,67 @@ const Signup = () => {
     }
 
     setLoading(true);
+
     try {
-      const signupResponse = await fetch("http://127.0.0.1:8000/api/users/", {
+      const res = await fetch(`${WEBPAGE}/api/users/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),
       });
 
-      if (signupResponse.status !== 201) {
-        const errorData = signupResponse.json().catch(() => ({}));
-        throw new Error(errorData.detail || "User registration failed!");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "User registration failed");
       }
 
-      message.success("User registered! Logging in...");
+      message.success("Signup successful! Please verify your email.");
 
-      const loginResponse = await fetch("http://127.0.0.1:8000/api/auth/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const loginData = loginResponse.json();
-
-      if (!loginResponse.ok || !loginData.token) {
-        throw new Error(loginData.detail || "Login failed after signup!");
-      }
-
-      localStorage.setItem("token", loginData.token);
-      message.success("Signup successful!");
+      // Redirect to verification notice page
+      navigate(`/verify-email?username=${username}`);
     } catch (err) {
-      message.error(err.message || "An error occurred.");
+      message.error(err.message || "Signup failed");
     } finally {
       setLoading(false);
-      document.href = "/";
-      document.location.reload();
     }
   };
 
   return (
-    <Form>
-    <Card title="Sign Up" style={{ width: 350, margin: "auto", marginTop: 50 }}>
+    <Form onFinish={handleSubmit}>
+      <Card title="Sign Up" style={{ width: 350, margin: "auto", marginTop: 50 }}>
+        <Form.Item label="Username" required>
+          <Input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Create a username"
+          />
+        </Form.Item>
 
-      <div style={{ marginBottom: 16 }}>
-        <label>Username</label>
-        <Input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Create a username"
-        />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <label>Email</label>
-        <Input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-        />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <label>Password</label>
-        <Input.Password
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter a password"
-        />
-      </div>
+        <Form.Item label="Email" required>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+          />
+        </Form.Item>
 
-      <Button type="primary" onClick={handleSubmit} loading={loading} block>
-        Sign Up
-      </Button>
+        <Form.Item label="Password" required>
+          <Input.Password
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Create a password"
+          />
+        </Form.Item>
 
-      <p style={{ marginTop: 12 }}>
-        Already have an account? <a href="/login">Login</a>
-      </p>
-    </Card>
+        <Button type="primary" htmlType="submit" loading={loading} block>
+          Sign Up
+        </Button>
+
+        <p style={{ marginTop: 12 }}>
+          Already have an account? <a href="/login">Login</a>
+        </p>
+      </Card>
     </Form>
   );
 };

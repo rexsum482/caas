@@ -13,6 +13,28 @@ from django.utils import timezone
 from django.db.models import Sum, Count, F
 from datetime import timedelta, date
 from django.db.models.functions import TruncMonth
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from users.models import EmailVerificationToken
+from rest_framework import status
+
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+
+        if not user.email_confirmed:
+            return Response(
+                {"detail": "Email not verified."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({"token": token.key})
 
 class DashboardView(APIView):
     authentication_classes = [authentication.TokenAuthentication]

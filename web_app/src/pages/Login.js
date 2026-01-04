@@ -7,6 +7,7 @@ const Login = ({ setIsAuthenticated }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
@@ -17,22 +18,32 @@ const Login = ({ setIsAuthenticated }) => {
 
     setLoading(true);
     try {
-      const response = await fetch(WEBPAGE + "/auth/", {
+      const response = await fetch(`${WEBPAGE}/auth/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
+
       const data = await response.json();
+
+      // 🚫 Email not verified
+      if (response.status === 403 && data.detail === "Email not verified.") {
+        message.warning("Please verify your email before logging in.");
+
+        // Pass email/username for resend convenience
+        navigate(`/verify-email?username=${username}`)
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(data.detail || "Login failed.");
       }
 
-      const token = data.token;
-      if (!token) throw new Error("No token received.");
+      if (!data.token) {
+        throw new Error("No token received.");
+      }
 
-      localStorage.setItem("authToken", token);
+      localStorage.setItem("authToken", data.token);
       setIsAuthenticated?.(true);
 
       message.success("Login successful!");
@@ -47,7 +58,7 @@ const Login = ({ setIsAuthenticated }) => {
 
   return (
     <Form
-      onFinish={handleSubmit} // triggers on Enter key automatically
+      onFinish={handleSubmit}
       style={{ width: 350, margin: "auto", marginTop: 50 }}
     >
       <Card title="Login">
@@ -71,7 +82,7 @@ const Login = ({ setIsAuthenticated }) => {
 
         <Button
           type="primary"
-          htmlType="submit" // important: triggers Form onFinish on Enter
+          htmlType="submit"
           loading={loading}
           block
         >

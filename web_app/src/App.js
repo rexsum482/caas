@@ -25,6 +25,9 @@ import PublicRescheduleAppointment from "./pages/Reschedule";
 import Appointments from "./pages/Appointments";
 import About from "./pages/About";
 import { ConfigProvider } from "antd";
+import Messages from "./pages/Messages";
+import Message from "./pages/Message";
+import VerifyEmail from "./pages/VerifyEmail";
 
 const { Content } = Layout;
 const config = window.DJANGO_CONTEXT;
@@ -170,6 +173,9 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             <Route path="/reschedule/:token" element={<PublicRescheduleAppointment />} />
             <Route path="/appointments" element={<Appointments />} />
             <Route path="/about" element={<About />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/message/:id" element={<Message />} /> {/* detail view later */}
+            <Route path="/verify-email" element={<VerifyEmail />} />
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

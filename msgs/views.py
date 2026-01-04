@@ -6,6 +6,7 @@ from rest_framework.authentication import TokenAuthentication
 from .models import Message, Attachment
 from .serializers import MessageSerializer, AttachmentSerializer
 from .permissions import AdminReadCustomerWrite
+from .ws import push_message
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all().order_by('-timestamp')
@@ -19,7 +20,8 @@ class MessageViewSet(viewsets.ModelViewSet):
         return Message.objects.none()  # customers blocked from viewing
 
     def perform_create(self, serializer):
-        serializer.save()
+        msg = serializer.save()
+        push_message(msg) 
 
     # 🔥 mark-as-read endpoint
     @action(methods=['patch'], detail=True, url_path='mark-read')
@@ -30,7 +32,15 @@ class MessageViewSet(viewsets.ModelViewSet):
         msg = self.get_object()
         msg.read = True
         msg.save()
+        push_message(msg)
         return Response({"status": "marked as read"})
+    
+    @action(methods=['get'], detail=False, url_path='unread-count')
+    def unread_count(self, request):
+        if not request.user.is_superuser:
+            return Response({"detail": "Admins only"}, status=403)
+        count = Message.objects.filter(read=False).count()
+        return Response({"unread_count": count} )
 
 class AttachmentViewSet(viewsets.ModelViewSet):
     queryset = Attachment.objects.all()

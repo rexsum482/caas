@@ -7,6 +7,7 @@ import {
   Input,
   Space,
   Button,
+  message,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -28,29 +29,36 @@ export default function Invoices() {
     fetchInvoices();
   }, []);
 
-  const fetchInvoices = async () => {
+const fetchInvoices = async () => {
+  try {
     setLoading(true);
     const res = await axios.get(API, {
       headers: { Authorization: `Token ${token}` },
     });
-    setInvoices(res.data);
-    setLoading(false);
-  };
 
-  const filteredInvoices = invoices.filter((inv) => {
-    const term = search.toLowerCase();
-    return (
-      inv.invoice_number.toLowerCase().includes(term) ||
-      inv.customer?.toString().includes(term)
-    );
-  });
+    setInvoices(Array.isArray(res.data) ? res.data : res.data.results || []);
+  } catch (err) {
+    console.error(err);
+    message.error("Failed to load invoices");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const filteredInvoices = invoices.filter((inv) => {
+  if (!search.trim()) return true;
+
+  const term = search.toLowerCase();
+
+  return (
+    String(inv.invoice_number).toLowerCase().includes(term) ||
+    (inv.customer_name || "").toLowerCase().includes(term)
+  );
+});
 
   return (
     <Card style={{ maxWidth: 1200, margin: "auto" }}>
-      <Space
-        style={{ width: "100%", marginBottom: 16 }}
-        direction="vertical"
-      >
+      <Space style={{ width: "100%", marginBottom: 16 }} direction="vertical">
         <Title level={3}>Invoices</Title>
 
         <Search
@@ -74,13 +82,14 @@ export default function Invoices() {
             title: "Invoice #",
             dataIndex: "invoice_number",
             sorter: (a, b) =>
-              a.invoice_number.localeCompare(b.invoice_number),
+              String(a.invoice_number).localeCompare(
+                String(b.invoice_number)
+              ),
           },
           {
             title: "Customer",
             render: (_, record) =>
-              record.customer_name ||
-              `Customer #${record.customer}`,
+              record.customer_name || `Customer #${record.customer}`,
           },
           {
             title: "Location",
@@ -92,18 +101,14 @@ export default function Invoices() {
           {
             title: "Amount",
             dataIndex: "amount",
-            render: (v) => `$${v}`,
+            render: (v) => `$${Number(v).toFixed(2)}`,
             sorter: (a, b) => a.amount - b.amount,
           },
           {
             title: "Status",
             dataIndex: "paid",
             render: (paid) =>
-              paid ? (
-                <Tag color="green">Paid</Tag>
-              ) : (
-                <Tag color="red">Unpaid</Tag>
-              ),
+              paid ? <Tag color="green">Paid</Tag> : <Tag color="red">Unpaid</Tag>,
           },
           {
             title: "",

@@ -9,7 +9,7 @@ from notifications.middleware import TokenAuthMiddlewareStack
 import notifications.routing
 
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
+    "http": django_asgi_app,
     "websocket": TokenAuthMiddlewareStack(
         URLRouter(notifications.routing.websocket_urlpatterns)
     ),

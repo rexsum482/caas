@@ -2,7 +2,7 @@ from django.db import models
 
 class Message(models.Model):
     sender = models.EmailField()
-    subject = models.CharField(max_length=255)
+    subject = models.CharField(max_length=255, blank=True, null=True)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
