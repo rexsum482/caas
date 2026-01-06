@@ -91,7 +91,6 @@ export default function Message() {
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/messages")}>
             Back
           </Button>
-
           <Title level={3}>{message.subject}</Title>
 
           <Space direction="vertical">
@@ -102,21 +101,21 @@ export default function Message() {
           </Space>
 
           <Paragraph style={{ whiteSpace: "pre-wrap" }}>
-            {message.body}
+            {message.content}
           </Paragraph>
 
           {message.attachments?.length > 0 && (
             <div style={{ marginTop: 10 }}>
               <Text strong>Attachments:</Text>
               <br />
-              {message.attachments.map((file, i) => (
+              {message.attachments.map((attachment) => (
                 <Button
-                  key={i}
+                  key={attachment.id}
                   type="link"
                   icon={<PaperClipOutlined />}
-                  onClick={() => setAttachmentPreview(file)}
+                  onClick={() => setAttachmentPreview(attachment)}
                 >
-                  {file}
+                  {attachment.file.split("/").pop()}
                 </Button>
               ))}
             </div>
@@ -149,15 +148,17 @@ export default function Message() {
         width={700}
       >
         <Title level={4}>Attachment Preview</Title>
-        {attachmentPreview && attachmentPreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+        {attachmentPreview && /\.(jpg|jpeg|png|gif)$/i.test(attachmentPreview.file) ? (
           <Image
-            src={attachmentPreview}
+            src={attachmentPreview.file}
             style={{ maxHeight: 500, objectFit: "contain" }}
           />
         ) : (
-          <a href={attachmentPreview} download>
-            Click to download file
-          </a>
+          attachmentPreview && (
+            <a href={attachmentPreview.file} download>
+              Click to download file
+            </a>
+          )
         )}
       </Modal>
     </>

@@ -51,16 +51,6 @@ export default function AdminPage() {
     tooltip: { formatter: (d) => ({ name: "Revenue", value: currency(d.total) }) }
   };
 
-  const appointmentChartConfig = {
-    data: data.charts.upcoming_appointments,
-    xField: "date",
-    yField: "count",
-    smooth: true,
-    point: { size: 4 },
-    autoFit: true,
-    tooltip: { formatter: (d) => ({ name: "Appointments", value: d.count }) }
-  };
-
   return (
     <div style={{ padding: "20px", maxWidth: 1400, margin: "0 auto" }}>
       <Title level={2} style={{ marginBottom: 25, fontWeight: 600 }}>
@@ -106,11 +96,6 @@ export default function AdminPage() {
       {/* Invoice Revenue */}
       <Card title="💰 Invoice Revenue This Month" style={{ marginBottom: 20 }}>
         <Column {...invoiceChartConfig} height={270} />
-      </Card>
-
-      {/* Upcoming Appointments */}
-      <Card title="📅 Upcoming Appointments (Next 30 Days)" style={{ marginBottom: 20 }}>
-        <Area {...appointmentChartConfig} height={270} />
       </Card>
     </div>
   );

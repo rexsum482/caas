@@ -31,7 +31,7 @@ const Login = ({ setIsAuthenticated }) => {
         message.warning("Please verify your email before logging in.");
 
         // Pass email/username for resend convenience
-        navigate(`/verify-email?username=${username}`)
+        navigate(`/verify-email?username=${encodeURIComponent(username)}`);
         return;
       }
 

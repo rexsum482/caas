@@ -1,16 +1,7 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from django.utils import timezone
+from django.conf import settings
 from .models import Appointment, BlackoutDate
-
-BUSINESS_HOURS_BY_WEEKDAY = {
-    0: (time(9, 0), time(19, 0)),   # Monday
-    1: (time(9, 0), time(19, 0)),   # Tuesday
-    2: (time(9, 0), time(19, 0)),   # Wednesday
-    3: (time(9, 0), time(19, 0)),   # Thursday
-    4: (time(9, 0), time(19, 0)),   # Friday
-    5: (time(12, 0), time(17, 0)),  # Saturday
-    6: (time(12, 0), time(17, 0)),  # Sunday
-}
 
 APPOINTMENT_DURATION = timedelta(hours=1)
 
@@ -20,10 +11,12 @@ def generate_time_slots(date, exclude_appointment_id=None):
         return []
 
     weekday = date.weekday()
-    if weekday not in BUSINESS_HOURS_BY_WEEKDAY:
+    business_hours = settings.BUSINESS_HOURS_BY_WEEKDAY
+
+    if weekday not in business_hours:
         return []
 
-    start_time, end_time = BUSINESS_HOURS_BY_WEEKDAY[weekday]
+    start_time, end_time = business_hours[weekday]
     tz = timezone.get_current_timezone()
 
     start_dt = timezone.make_aware(

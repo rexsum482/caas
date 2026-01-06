@@ -8,7 +8,7 @@ def send_verification_email(user):
     token_obj, _ = EmailVerificationToken.objects.get_or_create(user=user)
 
     verification_link = (
-        f"{settings.FRONTEND_URL}/verify-email/{token_obj.token}/"
+        f"{settings.FRONTEND_URL}/api/users/verify-email/{token_obj.token}/"
     )
 
     send_mail(

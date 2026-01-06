@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 import uuid
@@ -63,42 +63,91 @@ class Appointment(models.Model):
         ("A", "Accepted"),
         ("D", "Declined"),
     ]
+
     customer_first_name = models.CharField(max_length=50)
     customer_last_name = models.CharField(max_length=50)
     customer_email = models.EmailField()
     customer_phone_number = models.CharField(max_length=25, blank=True, null=True)
+
     customer_street_address = models.CharField(max_length=100)
     customer_apt_suite = models.CharField(max_length=50, blank=True, null=True)
     customer_city = models.CharField(max_length=50)
-    customer_state = models.CharField(max_length=2, choices=STATE_CHOICES, blank=True, null=True)
+    customer_state = models.CharField(max_length=2, blank=True, null=True, choices=STATE_CHOICES)
     customer_zip_code = models.CharField(max_length=10, blank=True, null=True)
+
     requested_date = models.DateField()
     requested_time = models.TimeField()
     description = models.TextField(blank=True, null=True)
-    accepted = models.CharField(max_length=1, choices=STATUS_CHOICES, default="P")
+
+    accepted = models.CharField(
+        max_length=1,
+        choices=STATUS_CHOICES,
+        default="P",
+    )
+
     reschedule_token = models.UUIDField(
         default=uuid.uuid4,
         editable=False,
-        unique=True
+        unique=True,
     )
-    def __str__(self):
-        return f"{self.customer_first_name} {self.customer_last_name} - {self.requested_date} at {self.requested_time}"
 
-    def get_pending_requests(self):
-        return Appointment.objects.filter(accepted='P')
-    
-    def get_accepted_requests(self):
-        return Appointment.objects.filter(accepted='A')
-    
+    def __str__(self):
+        return (
+            f"{self.customer_first_name} {self.customer_last_name} "
+            f"- {self.requested_date} at {self.requested_time}"
+        )
+
+    # ---------------------------------
+    # Query helpers
+    # ---------------------------------
+    @classmethod
+    def pending(cls):
+        return cls.objects.filter(accepted="P")
+
+    @classmethod
+    def accepted_appointments(cls):
+        return cls.objects.filter(accepted="A")
+
+    # ---------------------------------
+    # Domain actions
+    # ---------------------------------
     def accept_request(self):
-        self.accepted = 'A'
-        self.save()
+        """
+        Accept this appointment and automatically decline
+        all other appointments for the same time slot.
+        """
+        with transaction.atomic():
+            # Validate conflict ONLY for acceptance
+            self.full_clean()
+
+            # Accept this appointment
+            self.accepted = "A"
+            self.save(update_fields=["accepted"])
+
+            # Decline all others for same slot
+            Appointment.objects.filter(
+                requested_date=self.requested_date,
+                requested_time=self.requested_time,
+                accepted="P",
+            ).exclude(pk=self.pk).update(accepted="D")
 
     def decline_request(self):
-        self.accepted = 'D'
-        self.save()
-    
+        """
+        Decline without triggering conflict validation.
+        """
+        self.accepted = "D"
+        self.save(update_fields=["accepted"])
+
+    # ---------------------------------
+    # Validation
+    # ---------------------------------
     def clean(self):
+        """
+        Only block conflicts when attempting to ACCEPT.
+        """
+        if self.accepted != "A":
+            return
+
         conflict = Appointment.objects.filter(
             requested_date=self.requested_date,
             requested_time=self.requested_time,
@@ -107,16 +156,23 @@ class Appointment(models.Model):
 
         if conflict.exists():
             raise ValidationError(
-                "This time slot is already booked."
+                {"requested_time": "This time slot is already booked."}
             )
-    
+
+    # ---------------------------------
+    # Save override
+    # ---------------------------------
     def save(self, *args, **kwargs):
-        self.full_clean()
+        """
+        Only auto-validate on normal saves.
+        Accept/decline should be done via methods.
+        """
+        if "update_fields" not in kwargs:
+            self.full_clean()
         super().save(*args, **kwargs)
 
-class BlackoutDate(models.Model):
+class BlackoutDate(models.Model): 
     date = models.DateField(unique=True)
     reason = models.CharField(max_length=100, blank=True)
-
     def __str__(self):
         return f"{self.date} - {self.reason or 'Blackout'}"

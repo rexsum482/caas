@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import useUnreadMessages from "../hooks/useMessageCount";
-import BANNER_LOGO from "../assets/rrr_banner.png";
+import BANNER_LOGO from "../assets/BannerLogo.png";
 import { useNotifications } from "../context/NotificationContext";
 
 const { Header } = Layout;
@@ -84,12 +84,13 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
       { key: "customers", match: /^\/customers/ },
       { key: "invoices", match: /^\/invoices/ },
       { key: "appointments", match: /^\/appointments/ },
-      { key: "messages", match: /^\/messages/ },   // ADDED
+      { key: "messages", match: /^\/messages/ },
       { key: "contact", match: /^\/contact/ },
       { key: "schedule", match: /^\/schedule/ },
       { key: "about", match: /^\/about/ },
       { key: "login", match: /^\/login/ },
       { key: "signup", match: /^\/signup/ },
+      { key: "myinvoices", match: /^\/myinvoices/ },
     ];
 
     return (map.find(r => r.match.test(path)) || {}).key || "";
@@ -142,6 +143,11 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
                 </>
               ) : (
                 <>
+                  {isAuthenticated && (
+                    <Menu.Item key="myinvoices">
+                      <a href="/myinvoices">My Invoices</a>
+                    </Menu.Item>
+                  )}
                   <Menu.Item key="contact"><a href="/contact">Contact</a></Menu.Item>
                   <Menu.Item key="schedule"><a href="/schedule">Schedule</a></Menu.Item>
                   <Menu.Item key="about"><a href="/about">About</a></Menu.Item>
@@ -244,6 +250,14 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
             </>
           ) : (
             <>
+              {isAuthenticated && (
+                <Menu.Item
+                  key="myinvoices"
+                  onClick={() => navigateAndClose("/myinvoices")}
+                >
+                  My Invoices
+                </Menu.Item>
+              )}
               <Menu.Item key="contact" onClick={() => navigateAndClose("/contact")}>Contact</Menu.Item>
               <Menu.Item key="schedule" onClick={() => navigateAndClose("/schedule")}>Schedule</Menu.Item>
               <Menu.Item key="about" onClick={() => navigateAndClose("/about")}>About</Menu.Item>

@@ -35,7 +35,7 @@ const Signup = () => {
       message.success("Signup successful! Please verify your email.");
 
       // Redirect to verification notice page
-      navigate(`/verify-email?username=${username}`);
+      navigate(`/verify-email?username=${encodeURIComponent(username)}`);
     } catch (err) {
       message.error(err.message || "Signup failed");
     } finally {

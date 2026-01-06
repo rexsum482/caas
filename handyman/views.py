@@ -51,7 +51,7 @@ class DashboardView(APIView):
         week_end = week_start + timedelta(days=6)
 
         invoices = Invoice.objects.filter(issue_date__range=[week_start, week_end])
-        appointments = Appointment.objects.filter(requested_date__range=[week_start, week_end])
+        appointments = Appointment.objects.filter(requested_date__range=[week_start, week_end], accepted="A")
         customers = Customer.objects.filter(created_at__range=[week_start, week_end])
         reviews = GoogleReview.objects.filter(review_time__range=[week_start, week_end])
 
@@ -76,7 +76,7 @@ class DashboardView(APIView):
         )
 
         upcoming_appointments_chart = (
-            Appointment.objects.filter(requested_date__gte=today, requested_date__lte=today + timedelta(days=30))
+            Appointment.objects.filter(requested_date__gte=today, requested_date__lte=today + timedelta(days=30), accepted="A")
             .values("requested_date")
             .annotate(count=Count("id"))
             .order_by("requested_date")

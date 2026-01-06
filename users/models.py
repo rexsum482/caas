@@ -35,7 +35,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=255, unique=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     email_confirmed = models.BooleanField(default=False)
     last_active = models.CharField(default=".", max_length=512)

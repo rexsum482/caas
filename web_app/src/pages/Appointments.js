@@ -8,6 +8,7 @@ import {
   Badge,
   message,
   Spin,
+  Divider,
 } from "antd";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -17,30 +18,49 @@ const { Title, Text } = Typography;
 const API = "/api/appointments/";
 const START_HOUR = 9;
 const END_HOUR = 19;
-const HOUR_HEIGHT = 60; // px per hour (Google-like)
+const HOUR_HEIGHT = 60;
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
+  const [pendingAppointments, setPendingAppointments] = useState([]);
   const [date, setDate] = useState(dayjs());
   const [loading, setLoading] = useState(false);
 
   // -----------------------------
-  // Load appointments
+  // Load all appointments
   // -----------------------------
   const loadAppointments = async () => {
-    setLoading(true);
     try {
-      const res = await axios.get(API);
+      const res = await axios.get(`${API}?status=A`);
       setAppointments(res.data);
     } catch {
       message.error("Failed to load appointments");
-    } finally {
-      setLoading(false);
     }
   };
 
+  // -----------------------------
+  // Load pending appointments
+  // -----------------------------
+  const loadPendingAppointments = async () => {
+    try {
+      const res = await axios.get(`${API}pending/`);
+      setPendingAppointments(res.data);
+    } catch {
+      message.error("Failed to load pending appointments");
+    }
+  };
+
+  const loadAll = async () => {
+    setLoading(true);
+    await Promise.all([
+      loadAppointments(),
+      loadPendingAppointments(),
+    ]);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    loadAppointments();
+    loadAll();
   }, []);
 
   // -----------------------------
@@ -50,7 +70,7 @@ export default function Appointments() {
     try {
       await axios.post(`${API}${id}/${action}/`);
       message.success(`Appointment ${action}ed`);
-      loadAppointments();
+      loadAll();
     } catch {
       message.error("Action failed");
     }
@@ -63,9 +83,6 @@ export default function Appointments() {
     dayjs(a.start).isSame(date, "day")
   );
 
-  // -----------------------------
-  // Render time grid hours
-  // -----------------------------
   const hours = Array.from(
     { length: END_HOUR - START_HOUR },
     (_, i) => START_HOUR + i
@@ -73,150 +90,173 @@ export default function Appointments() {
 
   return (
     <Spin spinning={loading}>
-      <Card>
-        <Space style={{ marginBottom: 16 }}>
-          <Title level={3} style={{ margin: 0 }}>
-            Appointment Schedule
-          </Title>
-          <DatePicker
-            value={date}
-            onChange={(d) => setDate(d)}
-          />
-        </Space>
+      <Space direction="vertical" size={24} style={{ width: "100%" }}>
+        {/* ===========================
+            PENDING APPOINTMENTS
+           =========================== */}
+        <Card>
+          <Title level={4}>Pending Appointments</Title>
 
-        {/* GRID */}
-        <div style={{ display: "flex", borderTop: "1px solid #eee" }}>
-          {/* TIME LABELS */}
-          <div style={{ width: 70 }}>
-            {hours.map((h) => (
-              <div
-                key={h}
-                style={{
-                  height: HOUR_HEIGHT,
-                  paddingTop: 2,
-                  textAlign: "right",
-                  paddingRight: 8,
-                  fontSize: 12,
-                  color: "#999",
-                }}
-              >
-                {dayjs().hour(h).minute(0).format("h A")}
-              </div>
-            ))}
-          </div>
-
-          {/* DAY COLUMN */}
-          <div
-            style={{
-              position: "relative",
-              flex: 1,
-              borderLeft: "1px solid #eee",
-            }}
-          >
-            {/* Hour lines */}
-            {hours.map((h) => (
-              <div
-                key={h}
-                style={{
-                  height: HOUR_HEIGHT,
-                  borderBottom: "1px solid #f0f0f0",
-                }}
-              />
-            ))}
-
-            {/* APPOINTMENTS */}
-            {dayAppointments.map((appt) => {
-              const start = dayjs(appt.start);
-              const end = dayjs(appt.end);
-
-              const top =
-                ((start.hour() + start.minute() / 60) - START_HOUR) *
-                HOUR_HEIGHT;
-
-              const height =
-                end.diff(start, "minute") *
-                (HOUR_HEIGHT / 60);
-
-              return (
-                <div
+          {pendingAppointments.length === 0 ? (
+            <Text type="secondary">No pending appointments</Text>
+          ) : (
+            <Space
+              direction="vertical"
+              size={12}
+              style={{ width: "100%" }}
+            >
+              {pendingAppointments.map((appt) => (
+                <Card
                   key={appt.id}
-                  style={{
-                    position: "absolute",
-                    top,
-                    left: 8,
-                    right: 8,
-                    height,
-                    background:
-                      appt.accepted === "A"
-                        ? "#f6ffed"
-                        : appt.accepted === "P"
-                        ? "#fffbe6"
-                        : "#fff1f0",
-                    border:
-                      appt.accepted === "A"
-                        ? "1px solid #b7eb8f"
-                        : appt.accepted === "P"
-                        ? "1px solid #ffe58f"
-                        : "1px solid #ffa39e",
-                    borderRadius: 6,
-                    padding: 8,
-                    overflow: "hidden",
-                  }}
+                  size="small"
+                  style={{ background: "#fffbe6" }}
                 >
                   <Space
-                    direction="vertical"
-                    size={4}
-                    style={{ width: "100%" }}
+                    style={{
+                      width: "100%",
+                      justifyContent: "space-between",
+                    }}
                   >
-                    <Text strong>
-                      {start.format("h:mm A")} –{" "}
-                      {end.format("h:mm A")}
-                    </Text>
+                    <Space direction="vertical" size={0}>
+                      <Text strong>
+                        {appt.customer_full_name}
+                      </Text>
+                      <Text type="secondary">
+                        {dayjs(appt.start).format(
+                          "MMM D, h:mm A"
+                        )}{" "}
+                        –{" "}
+                        {dayjs(appt.end).format("h:mm A")}
+                      </Text>
+                    </Space>
 
-                    <Text>
-                      {appt.customer_full_name}
-                    </Text>
-
-                    <Badge
-                      status={
-                        appt.accepted === "A"
-                          ? "success"
-                          : appt.accepted === "P"
-                          ? "warning"
-                          : "error"
-                      }
-                      text={appt.status_display}
-                    />
-
-                    {appt.accepted === "P" && (
-                      <Space>
-                        <Button
-                          size="small"
-                          type="primary"
-                          onClick={() =>
-                            updateStatus(appt.id, "accept")
-                          }
-                        >
-                          Accept
-                        </Button>
-                        <Button
-                          size="small"
-                          danger
-                          onClick={() =>
-                            updateStatus(appt.id, "decline")
-                          }
-                        >
-                          Decline
-                        </Button>
-                      </Space>
-                    )}
+                    <Space>
+                      <Button
+                        type="primary"
+                        onClick={() =>
+                          updateStatus(appt.id, "accept")
+                        }
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        danger
+                        onClick={() =>
+                          updateStatus(appt.id, "decline")
+                        }
+                      >
+                        Decline
+                      </Button>
+                    </Space>
                   </Space>
+                </Card>
+              ))}
+            </Space>
+          )}
+        </Card>
+
+        {/* ===========================
+            CALENDAR
+           =========================== */}
+        <Card>
+          <Space style={{ marginBottom: 16 }}>
+            <Title level={3} style={{ margin: 0 }}>
+              Appointment Schedule
+            </Title>
+            <DatePicker
+              value={date}
+              onChange={(d) => setDate(d)}
+            />
+          </Space>
+
+          <Divider />
+
+          <div style={{ display: "flex", borderTop: "1px solid #eee" }}>
+            {/* TIME LABELS */}
+            <div style={{ width: 70 }}>
+              {hours.map((h) => (
+                <div
+                  key={h}
+                  style={{
+                    height: HOUR_HEIGHT,
+                    paddingTop: 2,
+                    textAlign: "right",
+                    paddingRight: 8,
+                    fontSize: 12,
+                    color: "#999",
+                  }}
+                >
+                  {dayjs().hour(h).minute(0).format("h A")}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+
+            {/* DAY COLUMN */}
+            <div
+              style={{
+                position: "relative",
+                flex: 1,
+                borderLeft: "1px solid #eee",
+              }}
+            >
+              {hours.map((h) => (
+                <div
+                  key={h}
+                  style={{
+                    height: HOUR_HEIGHT,
+                    borderBottom: "1px solid #f0f0f0",
+                  }}
+                />
+              ))}
+
+              {dayAppointments.map((appt) => {
+                const start = dayjs(appt.start);
+                const end = dayjs(appt.end);
+
+                const top =
+                  ((start.hour() + start.minute() / 60) -
+                    START_HOUR) *
+                  HOUR_HEIGHT;
+
+                const height =
+                  end.diff(start, "minute") *
+                  (HOUR_HEIGHT / 60);
+
+                return (
+                  <div
+                    key={appt.id}
+                    style={{
+                      position: "absolute",
+                      top,
+                      left: 8,
+                      right: 8,
+                      height,
+                      background:
+                        appt.accepted === "A"
+                          ? "#f6ffed"
+                          : appt.accepted === "P"
+                          ? "#fffbe6"
+                          : "#fff1f0",
+                      borderRadius: 6,
+                      padding: 8,
+                    }}
+                  >
+                    <Space direction="vertical" size={4}>
+                      <Text strong>
+                        {start.format("h:mm A")} –{" "}
+                        {end.format("h:mm A")}
+                      </Text>
+                      <Text>
+                        {appt.customer_full_name}
+                      </Text>
+                    </Space>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </Space>
     </Spin>
   );
 }

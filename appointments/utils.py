@@ -18,18 +18,14 @@ We will notify you once it is accepted.
 
 Thank you,
 {settings.COMPANY_NAME}
-
-Need to reschedule?
-
-Click here:
-{reschedule_url}
 """
 
 def send_appointment_email(appointment, accepted=None):
-    reschedule_url = (
-        f"{settings.FRONTEND_URL}/reschedule/"
-        f"{appointment.reschedule_token}"
-    )
+    if accepted:
+        reschedule_url = (
+            f"{settings.FRONTEND_URL}/reschedule/"
+            f"{appointment.reschedule_token}"
+        )
     if accepted is None:
         status = "received"
         message = appointment_message(appointment)
@@ -44,11 +40,7 @@ def send_appointment_email(appointment, accepted=None):
 
     Thank you,
     {settings.DEFAULT_FROM_EMAIL}
-
-    Need to reschedule?
-
-    Click here:
-    {reschedule_url}
+    {'Need to reschedule?\n\n' + reschedule_url if accepted else ''}
     """
     else:
         status = "declined"
@@ -61,11 +53,6 @@ def send_appointment_email(appointment, accepted=None):
 
     Thank you,
     {settings.DEFAULT_FROM_EMAIL}
-
-    Need to reschedule?
-
-    Click here:
-    {reschedule_url}
     """
 
     send_mail(

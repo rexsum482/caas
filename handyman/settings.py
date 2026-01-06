@@ -1,21 +1,19 @@
-import os
 from pathlib import Path
 from dotenv import load_dotenv
-
+import json
+from datetime import time
+from django.core.exceptions import ImproperlyConfigured
+import os
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-DEBUG = os.getenv("DEBUG", "True") == "True"
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8000")
 
-ALLOWED_HOSTS = [
-    '192.168.1.223',
-    'localhost',
-    '127.0.0.1',
-] + os.getenv("ALLOWED_HOSTS", "").split(",")
+DEBUG = os.getenv("DEBUG") == "true"
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -117,6 +115,7 @@ REST_FRAMEWORK = {
 }
 STATICFILES_DIRS = [
     BASE_DIR / 'web_app' / 'build' / 'static',
+    BASE_DIR / 'web_app' / 'build' / 'assets',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
@@ -185,3 +184,34 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+def _parse_business_hours(value):
+    """
+    Converts:
+    {
+      "0": ["09:00", "19:00"]
+    }
+    into:
+    {
+      0: (time(9,0), time(19,0))
+    }
+    """
+    try:
+        raw = json.loads(value)
+        parsed = {}
+
+        for weekday, (start, end) in raw.items():
+            parsed[int(weekday)] = (
+                time.fromisoformat(start),
+                time.fromisoformat(end),
+            )
+
+        return parsed
+    except Exception as e:
+        raise ImproperlyConfigured(
+            f"Invalid BUSINESS_HOURS_BY_WEEKDAY env value: {e}"
+        )
+
+BUSINESS_HOURS_BY_WEEKDAY = _parse_business_hours(
+    os.getenv("BUSINESS_HOURS_BY_WEEKDAY", "{}")
+)

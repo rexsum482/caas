@@ -9,10 +9,8 @@ const COOLDOWN_SECONDS = 30;
 export default function VerifyEmail() {
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-
   const [searchParams] = useSearchParams();
-  const username = searchParams.get("usernamer"); // 👈 from URL
-
+  const username = searchParams.get("username");
   // Countdown timer
   useEffect(() => {
     if (cooldown <= 0) return;
