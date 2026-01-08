@@ -44,9 +44,9 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=["post"])
     def register_device(self, request):
-        token = request.data.get("token")
-        Device.objects.get_or_create(
-            user=request.user,
-            token=token
+        token = request.data.get("fcw_token")
+        device, _ = Device.objects.update_or_create(
+            fcm_token=request.data["fcm_token"],
+            defaults={"user": request.user},
         )
-        return Response({"status": "registered"})
+        return Response({"status": f"registered: {device}"})

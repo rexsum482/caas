@@ -169,12 +169,7 @@ else:
 
 COMPANY_NAME = os.getenv("REACT_APP_COMPANY_NAME") 
 
-
-FIREBASE_CREDENTIALS = (
-    os.getenv("FIREBASE_CREDENTIALS")
-    if not DEBUG
-    else None
-)
+FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
 
 CHANNEL_LAYERS = {
     "default": {
@@ -186,16 +181,6 @@ CHANNEL_LAYERS = {
 }
 
 def _parse_business_hours(value):
-    """
-    Converts:
-    {
-      "0": ["09:00", "19:00"]
-    }
-    into:
-    {
-      0: (time(9,0), time(19,0))
-    }
-    """
     try:
         raw = json.loads(value)
         parsed = {}

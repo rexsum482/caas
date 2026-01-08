@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import Notification
-
+from .models import Notification, Device
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class NotificationSerializer(serializers.ModelSerializer):
     time_since = serializers.SerializerMethodField()
@@ -30,4 +31,13 @@ class NotificationSerializer(serializers.ModelSerializer):
             return obj.invoice.customer.email 
         elif obj.user:
             return obj.user.email
-        return None 
+        return None
+    
+class DeviceSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+    class Meta:
+        model = Device
+        fields = ["user", "token", "created_at"]
+
+        read_only_fields = ["created_at"]

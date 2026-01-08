@@ -33,15 +33,22 @@ import MyInvoices from "./pages/MyInvoices";
 const { Content } = Layout;
 const config = window.DJANGO_CONTEXT;
 
-  const companyName = config.companyName
-  const primaryColor = config.primaryColor
-  const accentColor = config.accentColor
+const companyName = config.companyName;
+const primaryColor = config.primaryColor;
+const accentColor = config.accentColor;
+const alertColor = config.alertColor;
+const warningColor = config.warningColor;
+const successColor = config.successColor;
+
 function App() {
   return (
     <ConfigProvider
       theme={{
         token: {
           colorPrimary: primaryColor,
+          alertColor: alertColor,
+          warningColor: warningColor,
+          successColor: successColor,
         },
       }}
     >

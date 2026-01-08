@@ -9,3 +9,5 @@ dist/
 */build/
 staticfiles/
 *.log
+secrets/
+firebase-messaging-sw.js

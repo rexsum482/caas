@@ -5,3 +5,5 @@ class NotificationsConfig(AppConfig):
 
     def ready(self):
         import notifications.signals
+        from handyman.firebase import init_firebase
+        init_firebase()

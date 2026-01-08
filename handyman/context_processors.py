@@ -15,5 +15,12 @@ def frontend_context(request):
         "alert_color": os.environ.get("REACT_APP_ALERT_COLOR"),
         "warning_color": os.environ.get("REACT_APP_WARNING_COLOR"),
         "success_color": os.environ.get("REACT_APP_SUCCESS_COLOR"),
-
+        "fb_apiKey": os.environ.get("FWC_APIKEY"),
+        "fb_authDomain": os.environ.get("FWC_AUTHDOMAIN"),
+        "fb_projectId": os.environ.get("FWC_PROJECTID"),
+        "fb_storageBucket": os.environ.get("FWC_STORAGEBUCKET"),
+        "fb_messagingSenderId": os.environ.get("FWC_MESSAGINGSENDERID"),
+        "fb_appId": os.environ.get("FWC_APPID"),
+        "fb_measurementId": os.environ.get("FWC_MEASUREMENTID"),
+        "fb_vapidKey": os.environ.get("FWC_VAPIDKEY"),
     }
