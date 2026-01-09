@@ -5,7 +5,6 @@ import {
   DatePicker,
   Button,
   Space,
-  Badge,
   message,
   Spin,
   Divider,
@@ -26,9 +25,6 @@ export default function Appointments() {
   const [date, setDate] = useState(dayjs());
   const [loading, setLoading] = useState(false);
 
-  // -----------------------------
-  // Load all appointments
-  // -----------------------------
   const loadAppointments = async () => {
     try {
       const res = await axios.get(`${API}?status=A`);
@@ -38,9 +34,6 @@ export default function Appointments() {
     }
   };
 
-  // -----------------------------
-  // Load pending appointments
-  // -----------------------------
   const loadPendingAppointments = async () => {
     try {
       const res = await axios.get(`${API}pending/`);
@@ -63,9 +56,6 @@ export default function Appointments() {
     loadAll();
   }, []);
 
-  // -----------------------------
-  // Accept / Decline
-  // -----------------------------
   const updateStatus = async (id, action) => {
     try {
       await axios.post(`${API}${id}/${action}/`);
@@ -76,9 +66,20 @@ export default function Appointments() {
     }
   };
 
-  // -----------------------------
-  // Filter day appointments
-  // -----------------------------
+  const now = dayjs();
+
+  const upcomingAppointments = appointments
+    .filter(
+      (a) =>
+        a.accepted === "A" &&
+        dayjs(a.start).isAfter(now)
+    )
+    .sort(
+      (a, b) =>
+        dayjs(a.start).valueOf() -
+        dayjs(b.start).valueOf()
+    );
+
   const dayAppointments = appointments.filter((a) =>
     dayjs(a.start).isSame(date, "day")
   );
@@ -91,14 +92,46 @@ export default function Appointments() {
   return (
     <Spin spinning={loading}>
       <Space direction="vertical" size={24} style={{ width: "100%" }}>
-        {/* ===========================
-            PENDING APPOINTMENTS
-           =========================== */}
+        <Card>
+          <Title level={4}>Upcoming Appointments</Title>
+
+          {upcomingAppointments.length === 0 ? (
+            <Text type="secondary">
+              No upcoming appointments
+            </Text>
+          ) : (
+            <Space direction="vertical" size={12} style={{ width: "100%" }}>
+              {upcomingAppointments.map((appt) => (
+                <Card key={appt.id} size="small">
+                  <Space
+                    direction="vertical"
+                    size={4}
+                    style={{ width: "100%" }}
+                  >
+                    <Text strong>
+                      {appt.customer_full_name}
+                    </Text>
+                    <Text type="secondary">
+                      {dayjs(appt.start).format(
+                        "dddd, MMM D, h:mm A"
+                      )}{" "}
+                      –{" "}
+                      {dayjs(appt.end).format("h:mm A")}
+                    </Text>
+                  </Space>
+                </Card>
+              ))}
+            </Space>
+          )}
+        </Card>
+
         <Card>
           <Title level={4}>Pending Appointments</Title>
 
           {pendingAppointments.length === 0 ? (
-            <Text type="secondary">No pending appointments</Text>
+            <Text type="secondary">
+              No pending appointments
+            </Text>
           ) : (
             <Space
               direction="vertical"
@@ -155,9 +188,6 @@ export default function Appointments() {
           )}
         </Card>
 
-        {/* ===========================
-            CALENDAR
-           =========================== */}
         <Card>
           <Space style={{ marginBottom: 16 }}>
             <Title level={3} style={{ margin: 0 }}>
@@ -191,7 +221,6 @@ export default function Appointments() {
               ))}
             </div>
 
-            {/* DAY COLUMN */}
             <div
               style={{
                 position: "relative",
@@ -231,12 +260,7 @@ export default function Appointments() {
                       left: 8,
                       right: 8,
                       height,
-                      background:
-                        appt.accepted === "A"
-                          ? "#f6ffed"
-                          : appt.accepted === "P"
-                          ? "#fffbe6"
-                          : "#fff1f0",
+                      background: "#f6ffed",
                       borderRadius: 6,
                       padding: 8,
                     }}

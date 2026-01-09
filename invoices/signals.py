@@ -36,9 +36,6 @@ def set_invoice_defaults(sender, instance: Invoice, **kwargs):
 
 @receiver(post_save, sender=Invoice)
 def update_invoice_amount(sender, instance: Invoice, created, update_fields=None, **kwargs):
-    """
-    Recalculate invoice amount when tax_rate or discount changes
-    """
     if created:
         return
 

@@ -14,6 +14,6 @@ def push_notification(notification):
         group,
         {
         "type": "notify", 
-        "data": NotificationSerializer(notification).data
+        "data": NotificationSerializer(notification)
         }
     )

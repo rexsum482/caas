@@ -20,7 +20,7 @@ import { Customer } from "./pages/Customer";
 import { AddCustomer } from "./pages/AddCustomer";
 import Invoice from "./pages/Invoice";
 import Invoices from "./components/Invoices";
-import PublicAppointmentScheduler from "./pages/Appoinment";
+import PublicAppointmentScheduler from "./pages/Appointment";
 import PublicRescheduleAppointment from "./pages/Reschedule";
 import Appointments from "./pages/Appointments";
 import About from "./pages/About";

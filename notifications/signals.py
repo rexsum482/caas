@@ -10,34 +10,3 @@ def send_notification_ws(sender, instance, created, **kwargs):
     if created:
         # Push to connected users via WebSocket
         push_notification(instance)
-
-@receiver(post_save, sender=Invoice)
-def invoice_status_notification(sender, instance, created, **kwargs):
-    if created:
-        return
-
-    title = "Invoice Updated"
-    content = f"Invoice #{instance.invoice_number} was updated."
-
-    notif = Notification.objects.create(
-        invoice=instance,
-        title=title,
-        content=content,
-    )
-
-    push_notification(notif)
-
-
-@receiver(post_save, sender=Payment)
-def payment_notification(sender, instance, created, **kwargs):
-    if not created:
-        return
-
-    invoice = instance.invoice
-    notif = Notification.objects.create(
-        invoice=invoice,
-        title="Payment Received",
-        content=f"${instance.amount} payment applied to Invoice #{invoice.invoice_number}",
-    )
-
-    push_notification(notif)
