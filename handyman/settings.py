@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'appointments',
     'notifications.apps.NotificationsConfig',
     'reviews',
+    "carts.apps.CartConfig",
 ]
 
 MIDDLEWARE = [
@@ -200,3 +201,7 @@ def _parse_business_hours(value):
 BUSINESS_HOURS_BY_WEEKDAY = _parse_business_hours(
     os.getenv("BUSINESS_HOURS_BY_WEEKDAY", "{}")
 )
+
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+CART_ABANDONED_DAYS = 14

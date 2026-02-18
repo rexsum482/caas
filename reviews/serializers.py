@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from reviews.models import GoogleReview
+from reviews.models import GoogleReview, Review
 
 class GoogleReviewSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,3 +28,7 @@ class GoogleReviewSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
     
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['__all__']

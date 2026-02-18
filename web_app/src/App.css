@@ -103,3 +103,34 @@
 .cursor-pointer {
   cursor: pointer;
 }
+
+.work-hours-card {
+  background:
+    linear-gradient(135deg, #f0f5ff 0%, #ffffff 55%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(24, 144, 255, 0.05),
+      rgba(24, 144, 255, 0.05) 1px,
+      transparent 1px,
+      transparent 12px
+    );
+  border-radius: 12px;
+  border: 1px solid #d6e4ff;
+}
+
+.job-ticket-card {
+  background: #fafafa;
+  border-left: 6px solid #1890ff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+}
+
+.info-card {
+  background: #ffffff;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+}
+
+.main-text {
+  background: #262626;
+}

@@ -46,9 +46,10 @@ function App() {
       theme={{
         token: {
           colorPrimary: primaryColor,
-          alertColor: alertColor,
-          warningColor: warningColor,
-          successColor: successColor,
+          colorError: alertColor,
+          colorWarning: warningColor,
+          colorSuccess: successColor,
+          colorHighlight: accentColor,
         },
       }}
     >

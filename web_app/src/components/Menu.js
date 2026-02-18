@@ -106,13 +106,14 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
             justifyContent: "space-between",
             background: accentColor,
             padding: "20px",
+            marginTop: 0,
             position: "sticky",
             top: 0,
             zIndex: 1000,
           }}
         >
           <a href="/">
-            <img src={BANNER_LOGO} alt="Reliable Roofing & Restoration" style={{ height: 40, marginTop: "20px" }} />
+            <img src={BANNER_LOGO} alt="Reliable Roofing & Restoration" style={{ height: 40 }} />
           </a>
           {/* Desktop Menu */}
           <div className="desktop-menu" style={{ flex: 1, display: "none" }}>
