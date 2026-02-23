@@ -6,6 +6,15 @@ from datetime import timedelta
 from decimal import Decimal
 from .models import Invoice
 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.cache import cache
+from invoices.models import Invoice
+
+@receiver(post_save, sender=Invoice)
+def clear_dashboard_cache(sender, **kwargs):
+    cache.delete("admin_dashboard_v1")
+
 @receiver(pre_save, sender=Invoice)
 def set_invoice_defaults(sender, instance: Invoice, **kwargs):
     if instance.pk:
