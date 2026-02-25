@@ -15,7 +15,7 @@ const Home = ({ isAuthenticated }) => {
   return (
     <Layout className="min-h-screen bg-white">
       {/* Header / Banner */}
-      <Header
+      <div
         className="
           flex
           justify-center
@@ -48,7 +48,7 @@ const Home = ({ isAuthenticated }) => {
           delay: 0.2
         }}
       />
-      </Header>
+      </div>
 
       {/* Content */}
       <Content
@@ -70,9 +70,11 @@ const Home = ({ isAuthenticated }) => {
             shadow-sm
           "
           title={
-            <div className="text-center font-semibold text-blue-700">
-              Working Hours
-            </div>
+            <center>
+              <div className="text-center font-semibold text-blue-700 text-lg">
+                Working Hours
+              </div>
+            </center>
           }
         >
           {/* Business Info */}
@@ -106,7 +108,7 @@ const Home = ({ isAuthenticated }) => {
               <br />
               <Text>9:00 AM – 3:00 PM</Text>
             </div>
-
+            <br /><br />
             <div className="pt-3 border-t border-dashed border-gray-200">
               <Text type="secondary" className="text-sm">
                 Emergency service available after hours
