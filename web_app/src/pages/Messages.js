@@ -26,7 +26,13 @@ export default function Messages() {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
   const navigate = useNavigate();
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
+  
   useEffect(() => {
     const fetchMessages = async () => {
       try {

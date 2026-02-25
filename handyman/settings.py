@@ -112,8 +112,10 @@ AUTHENTICATION_BACKENDS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-    ]
+    ],
+
 }
+
 STATICFILES_DIRS = [
     BASE_DIR / 'web_app' / 'build' / 'static',
     BASE_DIR / 'web_app' / 'build' / 'assets',

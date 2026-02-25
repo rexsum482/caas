@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Invoice, Part, Labor, Payment, models
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 class PartSerializer(serializers.ModelSerializer):
     total_price = serializers.SerializerMethodField()
@@ -41,12 +41,16 @@ class LaborSerializer(serializers.ModelSerializer):
         return obj.total_price()
     
 class PaymentSerializer(serializers.ModelSerializer):
+    amount = serializers.SerializerMethodField()
     invoice = serializers.PrimaryKeyRelatedField(queryset=Invoice.objects.all())
 
     class Meta:
         model = Payment
         fields = '__all__'
         read_only_fields = []
+
+    def get_amount(self, obj):
+        return obj.amount.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
 
 
 class InvoiceSerializer(serializers.ModelSerializer):

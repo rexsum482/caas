@@ -1,7 +1,7 @@
 from django.db import models, transaction
 from django.utils import timezone
 from decimal import Decimal
-from django.db.models import Sum
+from django.db.models import Sum, F, DecimalField, ExpressionWrapper
 
 class Invoice(models.Model):
     invoice_number = models.CharField(
@@ -19,15 +19,18 @@ class Invoice(models.Model):
     issue_date = models.DateField(auto_now_add=True)
     due_date = models.DateField(blank=True, null=True)
     paid = models.BooleanField(default=False)
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=8.25)
+    tax_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("8.25")  # ✅ FIX
+    )
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
     def __str__(self):
         return f"Invoice {self.invoice_number} - {self.customer}"
 
     def total_payments(self):
-        return self.payments.aggregate(total=Sum("amount"))["total"] or 0
-
+        return self.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    
     def balance_due(self):
         return max(self.amount - self.total_payments(), 0)
 
@@ -53,6 +56,7 @@ class Invoice(models.Model):
             models.Index(fields=['invoice_number']),
             models.Index(fields=['customer']),
         ]
+
     def days_until_due(self):
         from django.utils import timezone
         try:
@@ -64,35 +68,66 @@ class Invoice(models.Model):
     def is_overdue(self):
         from django.utils import timezone
         return timezone.now().date() > self.due_date and not self.paid
-    
-    def generate_invoice_number(self):
+
+
+    def _generate_invoice_number(self):
         today = timezone.now().date()
-        prefix = today.strftime("%y%m%d")  # YYMMDD
+        prefix = today.strftime("%y%m%d")
 
         with transaction.atomic():
-            count_today = (
-                Invoice.objects
-                .select_for_update()
-                .filter(issue_date=today)
-                .count()
+            sequence, created = InvoiceSequence.objects.select_for_update().get_or_create(
+                date=today
             )
-            return f"{prefix}{count_today + 1:03d}"
-        
-    def recalculate_amount(self):
-        parts_total = sum(
-            part.total_price() for part in self.line_items.all()
+
+            sequence.last_number += 1
+            sequence.save(update_fields=["last_number"])
+
+            return f"{prefix}{sequence.last_number:03d}"
+
+    def recalculate_amount(self, save=True):
+        """
+        Recalculate invoice total using DB aggregation (fast, scalable).
+        """
+
+        parts_total = (
+            self.line_items
+            .aggregate(
+                total=Sum(
+                    ExpressionWrapper(
+                        F("quantity") * F("unit_price"),
+                        output_field=DecimalField(max_digits=12, decimal_places=2)
+                    )
+                )
+            )["total"] or Decimal("0.00")
         )
-        labor_total = sum(
-            labor.total_price() for labor in self.labor_items.all()
+
+        labor_total = (
+            self.labor_items
+            .aggregate(
+                total=Sum(
+                    ExpressionWrapper(
+                        F("hours") * F("hourly_rate"),
+                        output_field=DecimalField(max_digits=12, decimal_places=2)
+                    )
+                )
+            )["total"] or Decimal("0.00")
         )
 
         subtotal = parts_total + labor_total
         tax = subtotal * (self.tax_rate / Decimal("100"))
+        total = subtotal + tax - (self.discount or Decimal("0.00"))
 
-        return subtotal + tax - self.discount
+        self.amount = total
+
+        if save:
+            self.save(update_fields=["amount"])
+
+        return total
 
     def save(self, *args, **kwargs):
-        # Custom save logic can be added here
+        if not self.pk and not self.invoice_number:
+            self.invoice_number = self._generate_invoice_number()
+
         super().save(*args, **kwargs)
 
 class Part(models.Model):
@@ -195,3 +230,9 @@ class Payment(models.Model):
     def outstanding_amount(self):
         return max(0, self.invoice.amount - self.amount)
     
+class InvoiceSequence(models.Model):
+    date = models.DateField(unique=True)
+    last_number = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "invoice_daily_sequence"

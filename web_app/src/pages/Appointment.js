@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../components/axios"; // ✅ use shared axios instance
 import dayjs from "dayjs";
 import {
   Card,
@@ -14,7 +14,6 @@ import {
 } from "antd";
 
 const { Title, Text } = Typography;
-const API = "/api";
 
 export default function PublicAppointmentScheduler() {
   const [weekDays, setWeekDays] = useState([]);
@@ -44,7 +43,7 @@ export default function PublicAppointmentScheduler() {
   const loadSlots = async (date) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/appointments/available-slots/`, {
+      const res = await api.get("/appointments/available-slots/", {
         params: { date },
       });
       setSlots(res.data);
@@ -54,40 +53,42 @@ export default function PublicAppointmentScheduler() {
       setLoading(false);
     }
   };
-    const buildStartEnd = (date, time) => {
+
+  const buildStartEnd = (date, time) => {
     const start = dayjs(`${date} ${time}`);
     const end = start.add(1, "hour");
 
     return {
-        start: start.toISOString(),
-        end: end.toISOString(),
+      start: start.toISOString(),
+      end: end.toISOString(),
     };
-    };
-    const submitAppointment = async () => {
+  };
+
+  const submitAppointment = async () => {
     if (!selectedDate || !selectedTime) {
-        return message.error("Please select a date and time");
+      return message.error("Please select a date and time");
     }
 
     const { start, end } = buildStartEnd(selectedDate, selectedTime);
 
+    setLoading(true);
     try {
-        await axios.post(`${API}/appointments/`, {
+      await api.post("/appointments/", {
         ...form,
         requested_date: selectedDate,
         requested_time: selectedTime,
-
-        // 👇 explicitly send these
         start,
         end,
-        });
+      });
 
-        message.success("Appointment request submitted!");
-        setSelectedTime(null);
+      message.success("Appointment request submitted!");
+      setSelectedTime(null);
     } catch (err) {
-        message.error(err.response?.data?.detail || "Failed to book");
+      message.error(err.response?.data?.detail || "Failed to book");
+    } finally {
+      setLoading(false);
     }
-    };
-
+  };
 
   return (
     <Card style={{ maxWidth: 720, margin: "auto" }}>
@@ -133,7 +134,6 @@ export default function PublicAppointmentScheduler() {
       </Title>
 
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-        {/* Name */}
         <Row gutter={16}>
           <Col span={12}>
             <Input
@@ -155,7 +155,6 @@ export default function PublicAppointmentScheduler() {
           </Col>
         </Row>
 
-        {/* Contact */}
         <Row gutter={16}>
           <Col span={12}>
             <Input
@@ -177,7 +176,6 @@ export default function PublicAppointmentScheduler() {
           </Col>
         </Row>
 
-        {/* Address */}
         <Input
           placeholder="Street Address"
           value={form.customer_street_address}
@@ -194,7 +192,6 @@ export default function PublicAppointmentScheduler() {
           }
         />
 
-        {/* City / State / Zip */}
         <Row gutter={16}>
           <Col span={10}>
             <Input
@@ -236,7 +233,6 @@ export default function PublicAppointmentScheduler() {
           </Col>
         </Row>
 
-        {/* Description */}
         <Input.TextArea
           rows={4}
           placeholder="What do you need done?"

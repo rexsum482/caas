@@ -48,6 +48,15 @@ export function Customer() {
   const [invoiceForm] = Form.useForm();
   const navigate = useNavigate();
 
+  const fetchInvoices = async () => {
+    const res = await axios.get(`/api/invoices/?customer=${id}`, {
+      headers: { Authorization: `Token ${token}` },
+    });
+
+    const data = res.data;
+    setInvoices(Array.isArray(data) ? data : data.results || []);
+  };
+
   useEffect(() => {
     axios
       .get(`${API}${id}/`, {
@@ -55,11 +64,6 @@ export function Customer() {
       })
       .then((res) => form.setFieldsValue(res.data));
 
-    axios
-      .get(`/api/invoices/?customer=${id}`, {
-        headers: { Authorization: `Token ${token}` },
-      })
-      .then((res) => setInvoices(res.data));
   }, [id]);
 
   const onFinish = async (values) => {
@@ -81,7 +85,7 @@ export function Customer() {
     const res = await axios.get(`/api/invoices/?customer=${id}`, {
         headers: { Authorization: `Token ${token}` },
     });
-    setInvoices(res.data);
+    setInvoices(res.data.results);
   };
   return (
     <Card title="Customer Profile" style={{ maxWidth: 1100, margin: "auto" }}>

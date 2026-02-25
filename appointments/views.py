@@ -6,7 +6,7 @@ from django.db import transaction
 from django.conf import settings
 
 from datetime import datetime
-
+from .pagination import AppointmentPagination
 from .permissions import IsAdminOrReadCreateOnly
 from .models import Appointment
 from .serializers import AppointmentSerializer, PublicAppointmentSerializer
@@ -87,6 +87,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     )
     serializer_class = AppointmentSerializer
     permission_classes = [IsAdminOrReadCreateOnly]
+    pagination_class = AppointmentPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -134,16 +135,14 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def pending(self, request):
-        appointments = Appointment.objects.filter(accepted="P")
-        serializer = self.get_serializer(appointments, many=True)
-        return Response(serializer.data)
+        queryset = Appointment.objects.filter(accepted="P")
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-    @action(detail=False, methods=["get"])
-    def accepted(self, request):
-        appointments = Appointment.objects.filter(accepted="A")
-        serializer = self.get_serializer(appointments, many=True)
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
     @action(detail=False, methods=["get"], url_path="available-slots")
     def available_slots(self, request):
         """

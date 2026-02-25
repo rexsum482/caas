@@ -1,0 +1,12 @@
+.appt-bar,
+.appt-card {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s ease-out;
+}
+
+.appt-bar.slide-in,
+.appt-card.slide-in {
+  opacity: 1;
+  transform: translateY(0);
+}
