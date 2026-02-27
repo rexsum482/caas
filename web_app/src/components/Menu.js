@@ -34,7 +34,7 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
 
   useEffect(() => {
     fetchNotifications();
-  }, [location.pathname]);
+  }, []);
 
   const extractId = (key, content) => {
     const match = content?.match(new RegExp(`${key}:(\\d+)`));
@@ -107,7 +107,6 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
             background: accentColor,
             padding: "20px",
             marginTop: 0,
-            position: "sticky",
             top: 0,
             zIndex: 1000,
           }}
@@ -122,6 +121,8 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
               mode="horizontal"
               selectedKeys={[getSelectedKey()]}
               style={{ background: "transparent", justifyContent: "center" }}
+              position="absolute"
+              top={0}
             >
               <Menu.Item key="home"><a href="/">Home</a></Menu.Item>
 
@@ -215,11 +216,11 @@ const TopNavBar = ({ isAuthenticated, isAdmin }) => {
 
             {!isAuthenticated ? (
               <>
-                <Button icon={<LoginOutlined />} onClick={() => navigate("/login")} className="desktop-menu">Login</Button>
-                <Button type="primary" icon={<UserAddOutlined />} onClick={() => navigate("/signup")} className="desktop-menu">Sign Up</Button>
+                <Button icon={<LoginOutlined />} onClick={() => navigate("/login")}>Login</Button>
+                <Button type="primary" icon={<UserAddOutlined />} onClick={() => navigate("/signup")}>Sign Up</Button>
               </>
             ) : (
-              <Button type="primary" icon={<LogoutOutlined />} onClick={handleLogout} className="desktop-menu">Logout</Button>
+              <Button type="primary" icon={<LogoutOutlined />} onClick={handleLogout}>Logout</Button>
             )}
 
             <Button
