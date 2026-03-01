@@ -41,18 +41,12 @@ class LaborSerializer(serializers.ModelSerializer):
         return obj.total_price()
     
 class PaymentSerializer(serializers.ModelSerializer):
-    amount = serializers.SerializerMethodField()
     invoice = serializers.PrimaryKeyRelatedField(queryset=Invoice.objects.all())
 
     class Meta:
         model = Payment
-        fields = '__all__'
-        read_only_fields = []
-
-    def get_amount(self, obj):
-        return obj.amount.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
-
-
+        fields = "__all__"
+        
 class InvoiceSerializer(serializers.ModelSerializer):
     is_overdue = serializers.SerializerMethodField()
     days_until_due = serializers.SerializerMethodField()
@@ -93,8 +87,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return Decimal(total).quantize(Decimal("0.00"))
 
     def get_balance_due(self, obj):
-        return Decimal(max(obj.amount - self.get_total_payments(obj), 0)).quantize(Decimal("0.00"))
+        amount = obj.amount or Decimal("0.00")
+        total_paid = self.get_total_payments(obj) or Decimal("0.00")
 
+        balance = amount - total_paid
+        return max(balance, Decimal("0.00")).quantize(Decimal("0.00"))
     def get_days_until_due(self, obj):
         return obj.days_until_due() if obj.due_date else None
 

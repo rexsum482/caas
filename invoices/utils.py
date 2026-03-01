@@ -44,12 +44,12 @@ def send_invoice_email(invoice, to_email):
         )
 
         # Attach logo inline
-        logo_path = Path(settings.BASE_DIR) / "staticfiles" / "media" / "rrr_banner_white.png"
+        logo_path = Path(settings.BASE_DIR) / "staticfiles" / "media" / "BannerWhiteLogo.png"
 
         with open(logo_path, "rb") as f:
             logo = MIMEImage(f.read())
             logo.add_header("Content-ID", "<banner_logo>")
-            logo.add_header("Content-Disposition", "inline", filename="rrr_banner_white.png")
+            logo.add_header("Content-Disposition", "inline", filename="BannerWhiteLogo.png")
             email.attach(logo)
 
         email.send(fail_silently=False)

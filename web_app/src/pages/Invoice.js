@@ -478,7 +478,7 @@ const updateInvoice = (field, value) => {
   style={{ width: isMobile ? "100%" : "auto" }}
 >
   <Button block={isMobile} icon={<FilePdfOutlined />} onClick={openPDF}>
-    View PDF
+    View / Print PDF
   </Button>
 
   <Button block={isMobile} icon={<MailOutlined />} onClick={sendEmail}>

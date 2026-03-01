@@ -63,7 +63,7 @@ export function Customer() {
         headers: { Authorization: `Token ${token}` },
       })
       .then((res) => form.setFieldsValue(res.data));
-
+      fetchInvoices();
   }, [id]);
 
   const onFinish = async (values) => {

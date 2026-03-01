@@ -10,6 +10,7 @@ import {
   message,
   List,
   Grid,
+  Popconfirm,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -46,6 +47,20 @@ export default function Invoices() {
       message.error("Failed to load invoices");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API}${id}/`, {
+        headers: { Authorization: `Token ${token}` },
+      });
+
+      message.success("Invoice deleted");
+      setInvoices((prev) => prev.filter((inv) => inv.id !== id));
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to delete invoice");
     }
   };
 
@@ -134,6 +149,22 @@ export default function Invoices() {
                 >
                   View Invoice →
                 </Button>
+                <Popconfirm
+                  title="Delete this invoice?"
+                  description="This action cannot be undone."
+                  onConfirm={() => handleDelete(inv.id)}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Button
+                    danger
+                    type="link"
+                    style={{ padding: 0 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Delete
+                  </Button>
+                </Popconfirm>
               </Space>
             </Card>
           )}
@@ -197,6 +228,26 @@ export default function Invoices() {
                 >
                   View
                 </Button>
+              ),
+            },
+            {
+              title: "",
+              render: (_, record) => (
+                <Popconfirm
+                  title="Delete this invoice?"
+                  description="This action cannot be undone."
+                  onConfirm={() => handleDelete(record.id)}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Button
+                    danger
+                    type="link"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    🗑
+                  </Button>
+                </Popconfirm>
               ),
             },
           ]}

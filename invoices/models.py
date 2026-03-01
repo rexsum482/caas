@@ -13,8 +13,7 @@ class Invoice(models.Model):
     amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        blank=True,
-        null=True
+        default=Decimal("0.00")
     )
     issue_date = models.DateField(auto_now_add=True)
     due_date = models.DateField(blank=True, null=True)
@@ -22,7 +21,7 @@ class Invoice(models.Model):
     tax_rate = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal("8.25")  # ✅ FIX
+        default=Decimal("8.25")
     )
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     def __str__(self):
@@ -32,22 +31,22 @@ class Invoice(models.Model):
         return self.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
     
     def balance_due(self):
-        return max(self.amount - self.total_payments(), 0)
+        amount = self.amount or Decimal("0.00")
+        return max(amount - self.total_payments(), Decimal("0.00"))
 
     def update_payment_status(self):
-        """Automatically mark paid/unpaid depending on payment total."""
-        if self.total_payments() >= self.amount:
-            self.mark_as_paid()
-        else:
-            self.mark_as_unpaid()
+        total_paid = self.total_payments()
+        invoice_amount = self.amount or Decimal("0.00")
+
+        self.paid = total_paid >= invoice_amount
+        self.save(update_fields=["paid"])
 
     def mark_as_paid(self):
         self.paid = True
-        self.save()
+
     def mark_as_unpaid(self):
         self.paid = False
-        self.save()
-    
+        
     class Meta:
         ordering = ['-issue_date']
         verbose_name = "Invoice"
@@ -195,6 +194,8 @@ class Payment(models.Model):
     payment_date = models.DateField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     method = models.CharField(max_length=50)
+    reference = models.CharField(max_length=255, blank=True, null=True)
+    note = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Payment of {self.amount} for Invoice {self.invoice.invoice_number}"
@@ -217,11 +218,7 @@ class Payment(models.Model):
         self.apply_to_invoice()
 
     def apply_to_invoice(self):
-        if self.amount >= self.invoice.amount:
-            self.invoice.mark_as_paid()
-        else:
-            self.invoice.mark_as_unpaid()
-        self.invoice.save()
+        self.invoice.update_payment_status()
 
     def refund(self):
         # Logic for refunding the payment

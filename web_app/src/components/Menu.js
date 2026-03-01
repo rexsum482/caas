@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import useUnreadMessages from "../hooks/useMessageCount";
-import BANNER_LOGO from "../assets/BannerLogo.png";
+import BANNER_LOGO from "../assets/BannerLogoWhite.png";
 import { useNotifications } from "../context/NotificationContext";
 
 const { Header } = Layout;

@@ -104,7 +104,7 @@ const Home = ({ isAuthenticated }) => {
             </div>
 
             <div>
-              <Text strong>Saturday</Text>
+              <Text strong>Saturday and Sunday</Text>
               <br />
               <Text>9:00 AM – 3:00 PM</Text>
             </div>
