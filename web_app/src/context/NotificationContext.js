@@ -6,7 +6,24 @@ import { MailOutlined, BellOutlined } from "@ant-design/icons";
 import sha256 from "crypto-js/sha256";
 
 function safeGroup(email){
-  return "user_"+sha256(email.toLowerCase()).toString().substring(0,32);
+  if (!email) {
+    console.warn("⚠ safeGroup called with empty email");
+    return null;
+  }
+
+  const normalized = email.trim().toLowerCase();
+  const fullHash = sha256(normalized).toString();
+  const shortHash = fullHash.substring(0, 32);
+  const group = "user_" + shortHash;
+
+  console.log("🔍 FRONTEND HASH DEBUG");
+  console.log("Original email:", email);
+  console.log("Normalized:", normalized);
+  console.log("Full SHA256:", fullHash);
+  console.log("Short (32):", shortHash);
+  console.log("Final group:", group);
+
+  return group;
 }
 
 const NotificationContext = createContext();

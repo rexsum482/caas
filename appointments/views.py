@@ -60,22 +60,12 @@ def public_reschedule(request, token):
 
     appointment.requested_date = new_date
     appointment.requested_time = new_time
-    appointment.accepted = "P"  # force re-approval
+    appointment.accepted = "A"
     appointment.save()
 
     send_appointment_email(
-        subject="Appointment Rescheduled",
-        message=f"""
-Hello {appointment.customer_first_name},
-
-Your appointment has been rescheduled.
-
-📅 {new_date}
-⏰ {new_time.strftime('%I:%M %p')}
-
-We will notify you once it is confirmed.
-""",
-        recipient=appointment.customer_email
+        appointment,
+        accepted=True
     )
 
     return Response({"status": "rescheduled"})

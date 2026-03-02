@@ -2,13 +2,14 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import hashlib
 from .serializers import NotificationSerializer
+from django.conf import settings
 
 def safe_group(email):
     return "user_" + hashlib.sha256(email.lower().encode()).hexdigest()[:32]
 
 def push_notification(notification):
     channel = get_channel_layer()
-    group = safe_group(notification.invoice.customer.email)
+    group = safe_group(settings.ADMIN_EMAIL)
 
     async_to_sync(channel.group_send)(
         group,
