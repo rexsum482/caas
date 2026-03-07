@@ -45,7 +45,7 @@ MIDDLEWARE = [
     # Auth
     'django.contrib.auth.middleware.AuthenticationMiddleware',
 
-    # Your middleware AFTER auth
+    # Middleware AFTER auth
     'handyman.middleware.UpdateLastActiveMiddleware',
 
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -125,7 +125,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "master@ccgenz.com")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@domain.com")
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -159,20 +159,7 @@ LOGGING = {
     },
 }
 
-SQUARE_ENVIRONMENT = os.getenv("SQUARE_ENVIRONMENT", "sandbox")
-
-if SQUARE_ENVIRONMENT == "production":
-    SQUARE_ACCESS_TOKEN = os.getenv("SQUARE_ACCESS_TOKEN")
-    SQUARE_APPLICATION_ID = os.getenv("SQUARE_APPLICATION_ID")
-    SQUARE_LOCATION_ID = os.getenv('SQUARE_LOCATION_ID')
-else:
-    SQUARE_ACCESS_TOKEN = os.getenv("SQUARE_SANDBOX_TOKEN")
-    SQUARE_APPLICATION_ID = os.getenv("SQUARE_SANDBOX_APPLICATION_ID")
-    SQUARE_LOCATION_ID = os.getenv('SQUARE_SANDBOX_LOCATION_ID')
-
 COMPANY_NAME = os.getenv("REACT_APP_COMPANY_NAME") 
-
-FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
 
 CHANNEL_LAYERS = {
     "default": {
