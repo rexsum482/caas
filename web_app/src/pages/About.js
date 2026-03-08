@@ -15,6 +15,14 @@ import {
   Button,
 } from "antd";
 import { UserOutlined, GoogleOutlined } from "@ant-design/icons";
+import { motion } from "framer-motion";
+import ADD_CUSTOMER from "../assets/add_customer.jpg";
+import INVOICE from "../assets/invoices.jpg";
+import CONTACT from "../assets/contact.jpg";
+import APPOINTMENTS from "../assets/appointments.jpg";
+import CUSTOMERS from "../assets/customers.jpg";
+import NESSAGES from "../assets/messages.jpg";
+import SCHEDULE from "../assets/schedule.jpg";
 
 const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -22,10 +30,43 @@ const { Title, Paragraph, Text } = Typography;
 const GOOGLE_REVIEW_URL =
   "https://g.page/r/YOUR_GOOGLE_PLACE_ID/review";
 
+const imageCardStyle = {
+  borderRadius: 12,
+  overflow: "hidden",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+  background: "#fff",
+};
+
+const imageStyle = {
+  width: "100%",
+  height: 220,
+  objectFit: "cover",
+};
+const galleryImages = [
+  { src: ADD_CUSTOMER, label: "Add Customer" },
+  { src: INVOICE, label: "Create Invoice" },
+  { src: CONTACT, label: "Customer Contact" },
+  { src: APPOINTMENTS, label: "Appointments" },
+  { src: CUSTOMERS, label: "Customer Management" },
+  { src: NESSAGES, label: "Messaging System" },
+  { src: SCHEDULE, label: "Scheduling" },
+];
+
 const About = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  /* ---------------- IMAGE ARRAY ---------------- */
+  const galleryImages = [
+    ADD_CUSTOMER,
+    INVOICE,
+    CONTACT,
+    APPOINTMENTS,
+    CUSTOMERS,
+    NESSAGES,
+    SCHEDULE,
+  ];
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -98,30 +139,43 @@ const About = () => {
         )}
 
         {/* IMAGE GALLERY */}
-        <Card bordered={false} style={{ marginBottom: 32 }}>
+        <Card bordered={false} style={{ marginBottom: 40 }}>
+          <Title level={3} style={{ textAlign: "center", marginBottom: 32 }}>
+            App Features
+          </Title>
+
           <Image.PreviewGroup>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} md={8}>
-                <Image src="/images/roof1.jpg" />
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Image src="/images/roof2.jpg" />
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Image src="/images/roof3.jpg" />
-              </Col>
+            <Row gutter={[24, 24]}>
+              {galleryImages.map((img, index) => (
+                <Col xs={24} sm={12} md={8} lg={8} key={index}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.25 }}
+                    style={imageCardStyle}
+                  >
+                    <Image
+                      src={img}
+                      preview
+                      loading="lazy"
+                      style={imageStyle}
+                    />
+                  </motion.div>
+                </Col>
+              ))}
             </Row>
           </Image.PreviewGroup>
         </Card>
 
         {/* ABOUT TEXT */}
         <Card bordered={false} style={{ marginBottom: 32 }}>
-          <Title level={2}>Reliable Roofing & Restoration</Title>
+          <Title level={2}>Reliable Air & Appliance</Title>
           <Paragraph>
-            Reliable Roofing & Restoration is a professional roofing and storm
-            restoration company specializing in roof replacements, emergency
-            repairs, and insurance claim assistance. We are committed to quality,
-            integrity, and dependable service.
+            This is a sample invoicing program for potential customers to sample
+            the look and feel of the app before purchase. Message me with your
+            preferred primary color, accent color, company name in a message and
+            I will show how easily it is to convert from one company to the next.
+            Click the contact tab and leave a message on the site. Inquire for
+            pricing.
           </Paragraph>
         </Card>
 
@@ -177,7 +231,9 @@ const About = () => {
                     <Rate disabled value={review.rating} />
 
                     {review.comment && (
-                      <Paragraph style={{ marginTop: 16, fontStyle: "italic" }}>
+                      <Paragraph
+                        style={{ marginTop: 16, fontStyle: "italic" }}
+                      >
                         “{review.comment}”
                       </Paragraph>
                     )}
