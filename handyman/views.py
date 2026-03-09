@@ -56,6 +56,7 @@ class DashboardView(APIView):
             return Response(cached)
 
         today = timezone.now().date()
+        upcoming_7_day_end = today + timedelta(days=7)
         week_start = today - timedelta(days=today.weekday())
         week_end = week_start + timedelta(days=6)
 
@@ -103,6 +104,11 @@ class DashboardView(APIView):
             review_time__range=[week_start, week_end]
         )
 
+        upcoming_7_day_appointments_qs = Appointment.objects.filter(
+            requested_date__gte=today,
+            requested_date__lte=upcoming_7_day_end,
+            accepted="A"
+        )
         # ============================================================
         # 4️⃣ LAST 12 MONTHS REVENUE (Single Query + Python Fill)
         # ============================================================
@@ -202,6 +208,7 @@ class DashboardView(APIView):
                 "weekly_appointments": weekly_appointments_qs.count(),
                 "weekly_customers": weekly_customers_qs.count(),
                 "weekly_reviews": weekly_reviews_qs.count(),
+                "appointments_next_7_days": upcoming_7_day_appointments_qs.count(),
             },
 
             "revenue": {

@@ -134,8 +134,8 @@ export default function AdminPage() {
 
         <Col xs={24} sm={12} md={12} lg={6}>
           <Card>
-            <Text type="secondary">Appointments This Week</Text>
-            <Title level={3}>{data.counts.weekly_appointments}</Title>
+            <Text type="secondary">Appointments Next 7 Days</Text>
+            <Title level={3}>{data.counts.appointments_next_7_days}</Title>
           </Card>
         </Col>
       </Row>

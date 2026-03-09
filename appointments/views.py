@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.conf import settings
-
-from datetime import datetime
+from datetime import datetime, timedelta
+from django.utils import timezone
 from .pagination import AppointmentPagination
 from .permissions import IsAdminOrReadCreateOnly
 from .models import Appointment
@@ -224,3 +224,35 @@ If you did not request this change, please contact us immediately.
     def perform_create(self, serializer):
         appointment = serializer.save(accepted="P")
         send_appointment_email(appointment)
+
+    @action(detail=False, methods=["get"], url_path="week-slots")
+    def week_slots(self, request):
+        """
+        GET /api/appointments/week-slots/
+        Returns slot availability for the next 7 days starting today.
+        """
+
+        today = timezone.localdate()
+        now = timezone.localtime()
+
+        results = []
+
+        for i in range(7):
+            day = today + timedelta(days=i)
+
+            slots = generate_time_slots(day)
+
+            # filter past slots if today
+            if day == today:
+                slots = [
+                    s for s in slots
+                    if datetime.combine(day, datetime.strptime(s["time"], "%H:%M").time(), tzinfo=now.tzinfo) > now
+                ]
+
+            results.append({
+                "date": day,
+                "slots": slots,
+                "available": len(slots) > 0
+            })
+
+        return Response(results)

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import api from "../components/axios"; // ✅ use shared axios instance
+import api from "../components/axios";
 import dayjs from "dayjs";
 import {
   Card,
@@ -11,6 +11,7 @@ import {
   message,
   Row,
   Col,
+  Spin,
 } from "antd";
 
 const { Title, Text } = Typography;
@@ -21,6 +22,7 @@ export default function PublicAppointmentScheduler() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [form, setForm] = useState({
     customer_first_name: "",
@@ -35,25 +37,44 @@ export default function PublicAppointmentScheduler() {
     description: "",
   });
 
+  // ------------------------
+  // Load next 7 days
+  // ------------------------
+  const loadWeek = async () => {
+    try {
+      const res = await api.get("/appointments/week-slots/");
+      setWeekDays(res.data);
+    } catch {
+      message.error("Failed to load availability");
+    }
+  };
+
   useEffect(() => {
-    const start = dayjs().startOf("week").add(1, "day");
-    setWeekDays(Array.from({ length: 7 }, (_, i) => start.add(i, "day")));
+    loadWeek();
   }, []);
 
+  // ------------------------
+  // Load slots for selected day
+  // ------------------------
   const loadSlots = async (date) => {
-    setLoading(true);
+    setLoadingSlots(true);
+
     try {
       const res = await api.get("/appointments/available-slots/", {
         params: { date },
       });
+
       setSlots(res.data);
     } catch {
-      message.error("Failed to load slots");
+      message.error("Failed to load time slots");
     } finally {
-      setLoading(false);
+      setLoadingSlots(false);
     }
   };
 
+  // ------------------------
+  // Build start/end ISO
+  // ------------------------
   const buildStartEnd = (date, time) => {
     const start = dayjs(`${date} ${time}`);
     const end = start.add(1, "hour");
@@ -64,6 +85,9 @@ export default function PublicAppointmentScheduler() {
     };
   };
 
+  // ------------------------
+  // Submit appointment
+  // ------------------------
   const submitAppointment = async () => {
     if (!selectedDate || !selectedTime) {
       return message.error("Please select a date and time");
@@ -72,7 +96,24 @@ export default function PublicAppointmentScheduler() {
     const { start, end } = buildStartEnd(selectedDate, selectedTime);
 
     setLoading(true);
+
     try {
+      // refresh slots before booking to avoid collision
+      const fresh = await api.get("/appointments/available-slots/", {
+        params: { date: selectedDate },
+      });
+
+      const stillAvailable = fresh.data.some(
+        (s) => s.time === selectedTime
+      );
+
+      if (!stillAvailable) {
+        message.warning("That time was just booked. Please choose another.");
+        setSlots(fresh.data);
+        setSelectedTime(null);
+        return;
+      }
+
       await api.post("/appointments/", {
         ...form,
         requested_date: selectedDate,
@@ -82,9 +123,11 @@ export default function PublicAppointmentScheduler() {
       });
 
       message.success("Appointment request submitted!");
+
       setSelectedTime(null);
+      loadWeek();
     } catch (err) {
-      message.error(err.response?.data?.detail || "Failed to book");
+      message.error(err.response?.data?.detail || "Booking failed");
     } finally {
       setLoading(false);
     }
@@ -94,40 +137,72 @@ export default function PublicAppointmentScheduler() {
     <Card style={{ maxWidth: 720, margin: "auto" }}>
       <Title level={3}>Schedule an Appointment</Title>
 
-      <Text>Select a day this week:</Text>
+      {/* DAY PICKER */}
+
+      <Text>Select a day:</Text>
+
       <Space wrap style={{ marginTop: 8 }}>
-        {weekDays.map((d) => (
-          <Button
-            key={d.format("YYYY-MM-DD")}
-            type={selectedDate === d.format("YYYY-MM-DD") ? "primary" : "default"}
-            onClick={() => {
-              setSelectedDate(d.format("YYYY-MM-DD"));
-              loadSlots(d.format("YYYY-MM-DD"));
-            }}
-          >
-            {d.format("ddd MM/DD")}
-          </Button>
-        ))}
+        {weekDays.map((d) => {
+          const date = dayjs(d.date).format("YYYY-MM-DD");
+
+          return (
+            <Button
+              key={date}
+              disabled={!d.available}
+              type={selectedDate === date ? "primary" : "default"}
+              onClick={() => {
+                setSelectedDate(date);
+                setSelectedTime(null);
+                loadSlots(date);
+              }}
+            >
+              {dayjs(d.date).format("ddd MM/DD")}
+            </Button>
+          );
+        })}
       </Space>
 
-      {slots.length > 0 && (
+      {/* SLOT PICKER */}
+
+      {selectedDate && (
         <>
           <div style={{ marginTop: 24 }}>
             <Text>Select a time:</Text>
           </div>
-          <Space wrap style={{ marginTop: 8 }}>
-            {slots.map((s) => (
-              <Button
-                key={s.time}
-                type={selectedTime === s.time ? "primary" : "default"}
-                onClick={() => setSelectedTime(s.time)}
-              >
-                {s.label}
-              </Button>
-            ))}
-          </Space>
+
+          <div style={{ marginTop: 10 }}>
+            {loadingSlots ? (
+              <Spin />
+            ) : (
+              <Space wrap>
+                {slots.map((s) => {
+                  const now = dayjs();
+                  const slotTime = dayjs(`${selectedDate} ${s.time}`);
+
+                  const past = slotTime.isBefore(now);
+
+                  return (
+                    <Button
+                      key={s.time}
+                      disabled={past}
+                      type={
+                        selectedTime === s.time
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => setSelectedTime(s.time)}
+                    >
+                      {s.label}
+                    </Button>
+                  );
+                })}
+              </Space>
+            )}
+          </div>
         </>
       )}
+
+      {/* CUSTOMER INFO */}
 
       <Title level={4} style={{ marginTop: 32 }}>
         Your Information
@@ -140,16 +215,23 @@ export default function PublicAppointmentScheduler() {
               placeholder="First Name"
               value={form.customer_first_name}
               onChange={(e) =>
-                setForm({ ...form, customer_first_name: e.target.value })
+                setForm({
+                  ...form,
+                  customer_first_name: e.target.value,
+                })
               }
             />
           </Col>
+
           <Col span={12}>
             <Input
               placeholder="Last Name"
               value={form.customer_last_name}
               onChange={(e) =>
-                setForm({ ...form, customer_last_name: e.target.value })
+                setForm({
+                  ...form,
+                  customer_last_name: e.target.value,
+                })
               }
             />
           </Col>
@@ -161,16 +243,23 @@ export default function PublicAppointmentScheduler() {
               placeholder="Email"
               value={form.customer_email}
               onChange={(e) =>
-                setForm({ ...form, customer_email: e.target.value })
+                setForm({
+                  ...form,
+                  customer_email: e.target.value,
+                })
               }
             />
           </Col>
+
           <Col span={12}>
             <Input
               placeholder="Phone"
               value={form.customer_phone_number}
               onChange={(e) =>
-                setForm({ ...form, customer_phone_number: e.target.value })
+                setForm({
+                  ...form,
+                  customer_phone_number: e.target.value,
+                })
               }
             />
           </Col>
@@ -180,15 +269,21 @@ export default function PublicAppointmentScheduler() {
           placeholder="Street Address"
           value={form.customer_street_address}
           onChange={(e) =>
-            setForm({ ...form, customer_street_address: e.target.value })
+            setForm({
+              ...form,
+              customer_street_address: e.target.value,
+            })
           }
         />
 
         <Input
-          placeholder="Apt / Suite (optional)"
+          placeholder="Apt / Suite"
           value={form.customer_apt_suite}
           onChange={(e) =>
-            setForm({ ...form, customer_apt_suite: e.target.value })
+            setForm({
+              ...form,
+              customer_apt_suite: e.target.value,
+            })
           }
         />
 
@@ -198,16 +293,23 @@ export default function PublicAppointmentScheduler() {
               placeholder="City"
               value={form.customer_city}
               onChange={(e) =>
-                setForm({ ...form, customer_city: e.target.value })
+                setForm({
+                  ...form,
+                  customer_city: e.target.value,
+                })
               }
             />
           </Col>
+
           <Col span={7}>
             <Select
               value={form.customer_state}
               style={{ width: "100%" }}
               onChange={(value) =>
-                setForm({ ...form, customer_state: value })
+                setForm({
+                  ...form,
+                  customer_state: value,
+                })
               }
             >
               {[
@@ -222,12 +324,16 @@ export default function PublicAppointmentScheduler() {
               ))}
             </Select>
           </Col>
+
           <Col span={7}>
             <Input
-              placeholder="Zip Code"
+              placeholder="Zip"
               value={form.customer_zip_code}
               onChange={(e) =>
-                setForm({ ...form, customer_zip_code: e.target.value })
+                setForm({
+                  ...form,
+                  customer_zip_code: e.target.value,
+                })
               }
             />
           </Col>
@@ -238,7 +344,10 @@ export default function PublicAppointmentScheduler() {
           placeholder="What do you need done?"
           value={form.description}
           onChange={(e) =>
-            setForm({ ...form, description: e.target.value })
+            setForm({
+              ...form,
+              description: e.target.value,
+            })
           }
         />
       </Space>
@@ -248,8 +357,8 @@ export default function PublicAppointmentScheduler() {
         size="large"
         block
         style={{ marginTop: 24 }}
-        onClick={submitAppointment}
         loading={loading}
+        onClick={submitAppointment}
       >
         Submit Appointment Request
       </Button>
