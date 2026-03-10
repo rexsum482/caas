@@ -16,13 +16,15 @@ from notifications.views import NotificationViewSet
 from reviews.views import GoogleReviewViewSet, ReviewStatsView
 from .views import DashboardView, CustomAuthToken
 from products.views import ProductViewSet
-from orders.views import CheckoutView
+from orders.views import CheckoutView, OrderViewSet
 from orders.webhooks import square_webhook
+from carts.views import CartViewSet
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
 router.register("messages", MessageViewSet, basename="message")
 router.register("attachments", AttachmentViewSet, basename="attachment")
+router.register("carts", CartViewSet, basename="cart")
 router.register("products", ProductViewSet, basename="product")
 router.register("invoices", InvoiceViewSet, basename="invoice")
 router.register("payments", PaymentViewSet, basename="payment")
@@ -35,6 +37,7 @@ router.register("notifications", NotificationViewSet, basename="notification")
 router.register("reviews", GoogleReviewViewSet, basename="review")
 router.register("shipping-addresses", ShippingAddressViewSet, basename="shipping-address")
 router.register("billing-addresses", BillingAddressViewSet, basename="billing-address")
+router.register("orders", OrderViewSet, basename="order")
 
 urlpatterns = [
     path('admin/', admin.site.urls),

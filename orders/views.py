@@ -6,7 +6,40 @@ from rest_framework.decorators import action
 from .models import CheckoutSession
 from .serializers import CheckoutSessionSerializer
 from .services import CheckoutService
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import Order
+from .serializers import OrderSerializer
+from .services import OrderService
 
+
+class OrderViewSet(viewsets.ModelViewSet):
+
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(
+            user=self.request.user
+        ).order_by("-created_at")
+
+    @action(detail=False, methods=["post"])
+    def checkout(self, request):
+
+        payment_id = request.data.get("payment_id")
+
+        order = OrderService(request).checkout(
+            payment_id=payment_id
+        )
+
+        serializer = OrderSerializer(order)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+        )
 
 class CheckoutSessionViewSet(viewsets.ModelViewSet):
 

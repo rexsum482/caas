@@ -10,11 +10,14 @@ from .utils import Cart
 class CartViewSet(viewsets.ViewSet):
 
     def list(self, request):
+
         cart = Cart(request)
+
         data = {
             "items": cart.items(),
             "total": cart.total(),
         }
+
         serializer = CartSerializer(data)
 
         return Response(serializer.data)

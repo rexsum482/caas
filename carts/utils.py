@@ -1,4 +1,5 @@
 from decimal import Decimal
+from products.models import Product
 
 class Cart:
     SESSION_KEY = "cart"
@@ -11,13 +12,23 @@ class Cart:
         self.session[self.SESSION_KEY] = self.cart
         self.session.modified = True
 
+
     def add(self, item):
+
         item_id = str(item["id"])
+
+        product = Product.objects.get(id=item["id"])
 
         if item_id in self.cart:
             self.cart[item_id]["quantity"] += item["quantity"]
+
         else:
-            self.cart[item_id] = item
+            self.cart[item_id] = {
+                "id": product.id,
+                "name": product.name,
+                "price": str(product.price),
+                "quantity": item["quantity"],
+            }
 
         self.save()
 
@@ -38,9 +49,28 @@ class Cart:
         self.session.modified = True
 
     def items(self):
-        return list(self.cart.values())
+
+        items = []
+
+        for item in self.cart.values():
+
+            subtotal = Decimal(item["price"]) * item["quantity"]
+
+            items.append({
+                "id": item["id"],
+                "product": {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "price": item["price"]
+                },
+                "quantity": item["quantity"],
+                "subtotal": subtotal
+            })
+
+        return items
 
     def total(self):
+
         return sum(
             Decimal(item["price"]) * item["quantity"]
             for item in self.cart.values()

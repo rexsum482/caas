@@ -8,7 +8,64 @@ from carts.models import Cart
 from orders.models import Order, OrderItem
 from products.models import Product
 from .models import CheckoutSession
+from decimal import Decimal
+from django.db import transaction
+from carts.utils import Cart
+from products.models import Product
+from .models import Order, OrderItem
 
+
+class OrderService:
+
+    def __init__(self, request):
+        self.request = request
+        self.user = request.user
+        self.cart = Cart(request)
+
+    @transaction.atomic
+    def checkout(self, payment_id=None):
+
+        items = self.cart.items()
+
+        if not items:
+            raise Exception("Cart is empty")
+
+        total = Decimal(self.cart.total())
+
+        order = Order.objects.create(
+            user=self.user,
+            total=total,
+            payment_id=payment_id,
+            status="paid",
+        )
+
+        for item in items:
+
+            product = Product.objects.select_for_update().get(
+                id=item["product"]["id"]
+            )
+
+            quantity = item["quantity"]
+
+            if product.inventory < quantity:
+                raise Exception(
+                    f"{product.name} is out of stock"
+                )
+
+            product.inventory -= quantity
+            product.save()
+
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=quantity,
+                price=product.price,
+                subtotal=product.price * quantity,
+            )
+
+        self.cart.clear()
+
+        return order
 class CheckoutService:
 
     SESSION_TIMEOUT_MINUTES = 15
