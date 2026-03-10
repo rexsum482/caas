@@ -2,12 +2,13 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .serializers import CartItemSerializer, CartSerializer
+from .models import CartItem
+from .serializers import CartSerializer, CartItemSerializer
 from .utils import Cart
 
 
 class CartViewSet(viewsets.ViewSet):
-    
+
     def list(self, request):
         cart = Cart(request)
         data = {
@@ -15,27 +16,28 @@ class CartViewSet(viewsets.ViewSet):
             "total": cart.total(),
         }
         serializer = CartSerializer(data)
+
         return Response(serializer.data)
 
     def create(self, request):
-        """
-        Add item to cart
-        """
-        serializer = CartItemSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
+        product_id = request.data.get("product_id")
+        quantity = int(request.data.get("quantity", 1))
+        if not product_id:
+            return Response(
+                {"detail": "product_id required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         cart = Cart(request)
-        cart.add(serializer.validated_data)
-
+        cart.add({
+            "id": product_id,
+            "quantity": quantity,
+        })
         return Response(
             {"detail": "Item added"},
             status=status.HTTP_201_CREATED,
         )
 
     def destroy(self, request, pk=None):
-        """
-        Remove item from cart
-        """
         cart = Cart(request)
         cart.remove(pk)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -43,16 +45,8 @@ class CartViewSet(viewsets.ViewSet):
     @action(detail=True, methods=["post"])
     def update_quantity(self, request, pk=None):
         quantity = request.data.get("quantity")
-
-        if not quantity:
-            return Response(
-                {"detail": "Quantity required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         cart = Cart(request)
         cart.update(pk, int(quantity))
-
         return Response({"detail": "Quantity updated"})
 
     @action(detail=False, methods=["post"])

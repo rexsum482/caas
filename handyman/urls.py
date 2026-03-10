@@ -11,11 +11,13 @@ from appointments.views import AppointmentViewSet, public_reschedule
 from notifications.views import NotificationViewSet
 from reviews.views import GoogleReviewViewSet, ReviewStatsView
 from .views import DashboardView, CustomAuthToken
+from products.views import ProductViewSet
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
 router.register("messages", MessageViewSet, basename="message")
 router.register("attachments", AttachmentViewSet, basename="attachment")
+router.register("products", ProductViewSet, basename="product")
 router.register("invoices", InvoiceViewSet, basename="invoice")
 router.register("payments", PaymentViewSet, basename="payment")
 router.register("labor", LaborViewSet, basename="labor")
