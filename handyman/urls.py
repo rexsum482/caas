@@ -6,12 +6,18 @@ from users.views import UserViewSet, verify_email, resend_verification_email
 from django.views.generic import TemplateView
 from msgs.views import MessageViewSet, AttachmentViewSet
 from invoices.views import InvoiceViewSet, PaymentViewSet, LaborViewSet, PartViewSet, CustomerInvoiceViewSet
-from customers.views import CustomerViewSet
+from customers.views import (
+    CustomerViewSet,
+    ShippingAddressViewSet,
+    BillingAddressViewSet
+)
 from appointments.views import AppointmentViewSet, public_reschedule
 from notifications.views import NotificationViewSet
 from reviews.views import GoogleReviewViewSet, ReviewStatsView
 from .views import DashboardView, CustomAuthToken
 from products.views import ProductViewSet
+from orders.views import CheckoutView
+from orders.webhooks import square_webhook
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
@@ -27,6 +33,8 @@ router.register("customers", CustomerViewSet, basename="customer")
 router.register("appointments", AppointmentViewSet, basename="appointment")
 router.register("notifications", NotificationViewSet, basename="notification")
 router.register("reviews", GoogleReviewViewSet, basename="review")
+router.register("shipping-addresses", ShippingAddressViewSet, basename="shipping-address")
+router.register("billing-addresses", BillingAddressViewSet, basename="billing-address")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -48,6 +56,8 @@ urlpatterns = [
     ),
     path("api/dashboard/", DashboardView.as_view(), name="dashboard"),
     path("api/reviews/stats/", ReviewStatsView.as_view(), name="review-stats"),
+    path("webhooks/square/", square_webhook),
+    path("api/checkout/", CheckoutView.as_view(), name="checkout"),
     path('api/', include(router.urls)),
     re_path(r'^.*$', TemplateView.as_view(template_name='index.html'), name='react_app'),
 ]

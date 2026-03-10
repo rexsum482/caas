@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import F, Sum, DecimalField
 from products.models import Product
 
 
@@ -13,8 +14,21 @@ class Cart(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
 
+    def total(self):
+
+        return (
+            self.items
+            .annotate(
+                subtotal=F("product__price") * F("quantity")
+            )
+            .aggregate(
+                total=Sum("subtotal", output_field=DecimalField())
+            )["total"]
+            or 0
+        )
+
     def __str__(self):
-        return f"{self.user}'s Cart"
+        return f"{self.user} cart"
 
 
 class CartItem(models.Model):
@@ -28,12 +42,12 @@ class CartItem(models.Model):
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
-        related_name="cart_items",
-        null=True,
-        blank=True,
     )
 
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ("cart", "product")
 
     def subtotal(self):
         return self.product.price * self.quantity

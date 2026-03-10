@@ -66,3 +66,29 @@ class Customer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+class ShippingAddress(models.Model):
+    customer = models.ForeignKey(Customer, related_name="shipping_addresses", on_delete=models.CASCADE)
+    street_address = models.CharField(max_length=128)
+    apt_suite =models.CharField(max_length=128, blank=True, null=True)
+    city =models.CharField(max_length=128)
+    state = models.CharField(max_length=2, choices=Customer.STATE_CHOICES, blank=True, null=True)
+    zip_code = models.CharField(max_length=10, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_default = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.street_address}, {self.city}, {self.state} {self.zip_code}"
+    
+class BillingAddress(models.Model):
+    customer = models.ForeignKey(Customer, related_name="billing_addresses", on_delete=models.CASCADE)
+    street_address = models.CharField(max_length=128)
+    apt_suite =models.CharField(max_length=128, blank=True, null=True)
+    city =models.CharField(max_length=128)
+    state = models.CharField(max_length=2, choices=Customer.STATE_CHOICES, blank=True, null=True)
+    zip_code = models.CharField(max_length=10, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_default = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.street_address}, {self.city}, {self.state} {self.zip_code}"

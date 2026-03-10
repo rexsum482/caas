@@ -1,7 +1,27 @@
 from decimal import Decimal
 from .models import Cart, CartItem
 from products.models import Product
+from django.core.cache import cache
 
+class CartCache:
+
+    PREFIX = "cart"
+
+    @classmethod
+    def key(cls, user_id):
+        return f"{cls.PREFIX}:{user_id}"
+
+    @classmethod
+    def get(cls, user_id):
+        return cache.get(cls.key(user_id))
+
+    @classmethod
+    def set(cls, user_id, data):
+        cache.set(cls.key(user_id), data, timeout=3600)
+
+    @classmethod
+    def delete(cls, user_id):
+        cache.delete(cls.key(user_id))
 
 class CartService:
 

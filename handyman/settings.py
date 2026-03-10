@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'reviews',
     "carts.apps.CartConfig",
     'products',
+    'orders',
     
 ]
 
@@ -204,3 +205,6 @@ CACHES = {
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
+
+SQUARE_ACCESS_TOKEN = os.getenv("SQUARE_ACCESS_TOKEN")
+SQUARE_LOCATION_ID = os.getenv("SQUARE_LOCATION_ID")
