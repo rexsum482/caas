@@ -35,7 +35,7 @@ INSTALLED_APPS = [
     "carts.apps.CartConfig",
     'products',
     'orders',
-    
+    'channels',
 ]
 
 MIDDLEWARE = [

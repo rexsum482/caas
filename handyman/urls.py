@@ -15,16 +15,17 @@ from appointments.views import AppointmentViewSet, public_reschedule
 from notifications.views import NotificationViewSet
 from reviews.views import GoogleReviewViewSet, ReviewStatsView
 from .views import DashboardView, CustomAuthToken
-from products.views import ProductViewSet
+from products.views import ProductViewSet, ProductImageViewSet
 from orders.views import CheckoutView, OrderViewSet
 from orders.webhooks import square_webhook
 from carts.views import CartViewSet
+from rest_framework_nested.routers import NestedDefaultRouter
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
 router.register("messages", MessageViewSet, basename="message")
 router.register("attachments", AttachmentViewSet, basename="attachment")
-router.register("carts", CartViewSet, basename="cart")
+router.register("cart", CartViewSet, basename="cart")
 router.register("products", ProductViewSet, basename="product")
 router.register("invoices", InvoiceViewSet, basename="invoice")
 router.register("payments", PaymentViewSet, basename="payment")
@@ -38,6 +39,9 @@ router.register("reviews", GoogleReviewViewSet, basename="review")
 router.register("shipping-addresses", ShippingAddressViewSet, basename="shipping-address")
 router.register("billing-addresses", BillingAddressViewSet, basename="billing-address")
 router.register("orders", OrderViewSet, basename="order")
+
+products_router = NestedDefaultRouter(router, r'products', lookup='product')
+products_router.register(r'images', ProductImageViewSet, basename='product-images')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -62,5 +66,6 @@ urlpatterns = [
     path("webhooks/square/", square_webhook),
     path("api/checkout/", CheckoutView.as_view(), name="checkout"),
     path('api/', include(router.urls)),
+    path('api/', include(products_router.urls)),
     re_path(r'^.*$', TemplateView.as_view(template_name='index.html'), name='react_app'),
 ]

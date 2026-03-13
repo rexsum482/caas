@@ -29,6 +29,10 @@ import Messages from "./pages/Messages";
 import Message from "./pages/Message";
 import VerifyEmail from "./pages/VerifyEmail";
 import MyInvoices from "./pages/MyInvoices";
+import Products from "./pages/Products";
+import MyProducts from "./pages/MyProducts";
+import { CartProvider } from "./context/CartConext"; 
+import { NotificationProvider } from './context/NotificationContext';
 
 const { Content } = Layout;
 const config = window.DJANGO_CONTEXT;
@@ -53,9 +57,13 @@ function App() {
         },
       }}
     >
-    <Router>
-      <AppContentRouter />
-    </Router>
+    <CartProvider>
+      <Router>
+        <NotificationProvider>
+          <AppContentRouter />
+        </NotificationProvider>
+      </Router>
+    </CartProvider>
     </ConfigProvider>
 );
 }
@@ -185,6 +193,8 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             <Route path="/messages" element={<Messages />} />
             <Route path="/message/:id" element={<Message />} /> {/* detail view later */}
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/myproducts" element={isAdmin ? <MyProducts /> : <Home />} />
+            <Route path="/products" element={<Products />} /> 
             <Route
               path="/myinvoices"
               element={

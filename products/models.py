@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Product(models.Model):
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=64, unique=True)
@@ -29,13 +30,13 @@ class Product(models.Model):
     def release(self, quantity):
 
         if self.track_inventory:
-
             self.stock += quantity
             self.save(update_fields=["stock"])
 
     def __str__(self):
         return self.name
-    
+
+
 class ProductImage(models.Model):
 
     product = models.ForeignKey(
@@ -54,3 +55,26 @@ class ProductImage(models.Model):
     )
 
     is_primary = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+
+        # Save first so we have an ID
+        super().save(*args, **kwargs)
+
+        if self.is_primary:
+            ProductImage.objects.filter(
+                product=self.product
+            ).exclude(id=self.id).update(is_primary=False)
+
+        # If this is the first image for the product,
+        # automatically make it primary
+        if not ProductImage.objects.filter(
+            product=self.product,
+            is_primary=True
+        ).exists():
+
+            self.is_primary = True
+            super().save(update_fields=["is_primary"])
+
+    def __str__(self):
+        return f"{self.product.name} image"

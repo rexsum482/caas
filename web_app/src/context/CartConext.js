@@ -10,7 +10,7 @@ export function CartProvider({ children }) {
   const loadCart = async () => {
     try {
       const res = await api.get("/cart/");
-      setCart(res.data);
+      setCart(res.data.items || []);
     } catch {
       console.error("Cart load failed");
     }

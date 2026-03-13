@@ -5,7 +5,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductImage
-        fields = ["image", "alt", "is_primary"]
+        fields = ["id", "image", "alt", "is_primary"]
 
 
 class ProductSerializer(serializers.ModelSerializer):

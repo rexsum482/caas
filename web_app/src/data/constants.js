@@ -1,3 +1,3 @@
-const WEBPAGE = "http://192.168.1.223:8000";
-const WEBSOCKET = "ws://192.168.1.223:8001";
+const WEBPAGE = "http://44.202.33.106";
+const WEBSOCKET = "ws://44.202.33.106";
 export { WEBPAGE, WEBSOCKET };
