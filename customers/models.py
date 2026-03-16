@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class Customer(models.Model):
     STATE_CHOICES = [
@@ -54,6 +55,13 @@ class Customer(models.Model):
         ("WY", "Wyoming"),
 
     ]
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="customer_profile",
+    )
     first_name = models.CharField(max_length=24)
     last_name = models.CharField(max_length=32)
     street_address = models.CharField(max_length=128)

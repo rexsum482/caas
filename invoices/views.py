@@ -1,6 +1,6 @@
-from rest_framework import viewsets, permissions, decorators, response
+from rest_framework import viewsets, permissions, decorators
 from rest_framework.authentication import TokenAuthentication
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
 from rest_framework.response import Response
 from decimal import Decimal, ROUND_HALF_UP
@@ -77,6 +77,15 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         return super().retrieve(request, *args, **kwargs)
 
+    def perform_create(self, serializer):
+        invoice = serializer.save()
+
+#        create_invoice_notification(
+#            self.request,
+#            invoice,
+#            f"Invoice #{invoice.invoice_number} created"
+#        )
+
     def perform_update(self, serializer):
         invoice = self.get_object()
         user = self.request.user
@@ -89,17 +98,24 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         serializer.save()
 
+
+#        create_invoice_notification(
+#            self.request,
+#            invoice,
+#            f"Invoice #{invoice.invoice_number} updated"
+#        )
+
     def perform_destroy(self, instance):
         user = self.request.user
 
         if not user.is_superuser:
             raise PermissionDenied("Not authorized to delete Invoice.")
 
-        create_invoice_notification(
-            self.request,
-            instance,
-            f"Invoice #{instance.invoice_number} destroyed"
-        )
+#        create_invoice_notification(
+#            self.request,
+#            instance,
+#            f"Invoice #{instance.invoice_number} destroyed"
+#        )
         instance.delete()
 
     # -------------------------
@@ -167,12 +183,6 @@ class PaymentViewSet(viewsets.ModelViewSet):
         self.get_object().amount = amount.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
         self.get_object().save()
         return super().retrieve(request, *args, **kwargs)
-
-from rest_framework import viewsets, permissions
-from django.http import HttpResponse, Http404
-from .models import Invoice
-from .serializers import InvoiceSerializer
-from .pdf import generate_invoice_pdf  # <-- your PDF generator
 
 class CustomerInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     """

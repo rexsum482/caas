@@ -1,15 +1,7 @@
-from django.db import transaction
-from django.db.models.signals import pre_save, post_save
-from django.dispatch import receiver
-from django.utils import timezone
-from datetime import timedelta
-from decimal import Decimal
-from .models import Invoice
-
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from .models import Invoice
 from django.core.cache import cache
-from invoices.models import Invoice
 
 @receiver(post_save, sender=Invoice)
 def clear_dashboard_cache(sender, **kwargs):

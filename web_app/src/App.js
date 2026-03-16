@@ -29,6 +29,9 @@ import Messages from "./pages/Messages";
 import Message from "./pages/Message";
 import VerifyEmail from "./pages/VerifyEmail";
 import MyInvoices from "./pages/MyInvoices";
+import Products from "./pages/Products";
+import MyProducts from "./pages/MyProducts";
+
 
 const { Content } = Layout;
 const config = window.DJANGO_CONTEXT;
@@ -185,6 +188,8 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             <Route path="/messages" element={<Messages />} />
             <Route path="/message/:id" element={<Message />} /> {/* detail view later */}
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/myproducts" element={isAuthenticated && isAdmin ? <MyProducts /> : <Navigate to="/" />} />
             <Route
               path="/myinvoices"
               element={

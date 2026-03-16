@@ -12,7 +12,9 @@ from .models import Appointment
 from .serializers import AppointmentSerializer, PublicAppointmentSerializer
 from .utils import send_appointment_email, send_mail
 from .scheduling import generate_time_slots
-
+from notifications.models import Notification
+from customers.models import Customer
+from invoices.models import Invoice
 
 @api_view(["GET", "POST"])
 def public_reschedule(request, token):
@@ -22,7 +24,6 @@ def public_reschedule(request, token):
         accepted__in=["P", "A"]
     )
 
-    # GET → show appointment + slots
     if request.method == "GET":
         slots = generate_time_slots(
             appointment.requested_date,
@@ -34,15 +35,11 @@ def public_reschedule(request, token):
             "available_slots": slots
         })
 
-    # POST → reschedule
     new_date = request.data.get("date")
     new_time = request.data.get("time")
 
     if not new_date or not new_time:
-        return Response(
-            {"error": "date and time required"},
-            status=400
-        )
+        return Response({"error": "date and time required"}, status=400)
 
     new_date = datetime.strptime(new_date, "%Y-%m-%d").date()
     new_time = datetime.strptime(new_time, "%H:%M").time()
@@ -63,10 +60,19 @@ def public_reschedule(request, token):
     appointment.accepted = "A"
     appointment.save()
 
-    send_appointment_email(
-        appointment,
-        accepted=True
+    notif = Notification.objects.create(
+        title="Customer Rescheduled Appointment",
+        content=f"{appointment.customer_first_name} rescheduled their appointment "
+                f"to {new_date} at {new_time.strftime('%I:%M %p')}.",
+        type="A",
+        metadata={
+            "appointment_id": appointment.id,
+            "date": str(new_date),
+            "time": new_time.strftime("%H:%M"),
+        }
     )
+
+    send_appointment_email(appointment, accepted=True)
 
     return Response({"status": "rescheduled"})
 
@@ -89,19 +95,54 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if status_filter in ["P", "A", "D"]:
             queryset = queryset.filter(accepted=status_filter)
 
-        # 🔗 Deep-link: single appointment
         if appointment_id:
             queryset = queryset.filter(id=appointment_id)
 
-        # 📅 Deep-link: calendar date
         if date_filter:
             try:
                 date = datetime.strptime(date_filter, "%Y-%m-%d").date()
                 queryset = queryset.filter(requested_date=date)
             except ValueError:
-                pass  # ignore invalid date silently
+                pass
 
         return queryset
+
+
+    def perform_create(self, serializer):
+
+        email = serializer.validated_data.get("customer_email")
+
+        existing = Appointment.objects.filter(
+            customer_email=email,
+            accepted__in=["P", "A"]
+        ).first()
+
+        if existing:
+            return Response(
+                {
+                    "detail": "You already have an appointment request.",
+                    "reschedule_url": f"/reschedule/{existing.reschedule_token}/"
+                },
+                status=status.HTTP_409_CONFLICT
+            )
+
+        appointment = serializer.save(accepted="P")
+
+        send_appointment_email(appointment)
+
+        notif = Notification.objects.create(
+            user=self.request.user if self.request.user.is_authenticated else None,
+            title="New Appointment Request",
+            content=f"{appointment.customer_first_name} requested an appointment on "
+                    f"{appointment.requested_date} at "
+                    f"{appointment.requested_time.strftime('%I:%M %p')}.",
+            type="A",
+            metadata={
+                "appointment_id": appointment.id,
+                "date": str(appointment.requested_date),
+                "time": appointment.requested_time.strftime("%H:%M"),
+            }
+        )
 
     # ----------------------
     # Custom Actions
@@ -110,10 +151,49 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
         appointment = self.get_object()
-        appointment.accept_request()
+
+        with transaction.atomic():
+
+            # Accept appointment
+            appointment.accept_request()
+
+            # -----------------------------
+            # Get or Create Customer
+            # -----------------------------
+            customer = Customer.objects.filter(
+                email=appointment.customer_email
+            ).first()
+
+            if not customer:
+                customer = Customer.objects.create(
+                    first_name=appointment.customer_first_name,
+                    last_name=appointment.customer_last_name,
+                    street_address=appointment.street_address,
+                    apt_suite=getattr(appointment, "apt_suite", ""),
+                    city=appointment.city,
+                    state=appointment.state,
+                    zip_code=appointment.zip_code,
+                    phone_number=appointment.phone_number,
+                    email=appointment.customer_email,
+                )
+
+        # -----------------------------
+        # Create Invoice
+        # -----------------------------
+            invoice = Invoice.objects.create(
+                customer=customer,
+                issue_date=appointment.requested_date
+            )
+
         send_appointment_email(appointment, accepted=True)
+
         serializer = self.get_serializer(appointment)
-        return Response(serializer.data)
+
+        return Response({
+            "appointment": serializer.data,
+            "invoice_id": invoice.id,
+            "invoice_number": invoice.invoice_number
+        })
 
     @action(detail=True, methods=["post"])
     def decline(self, request, pk=None):
@@ -133,6 +213,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
     @action(detail=False, methods=["get"], url_path="available-slots")
     def available_slots(self, request):
         """
@@ -221,16 +302,30 @@ If you did not request this change, please contact us immediately.
             "time": new_time.strftime("%H:%M")
         })
 
-    def perform_create(self, serializer):
-        appointment = serializer.save(accepted="P")
-        send_appointment_email(appointment)
+
+    @action(detail=False, methods=["get"], url_path="available-slots")
+    def available_slots(self, request):
+
+        date_str = request.query_params.get("date")
+        exclude_id = request.query_params.get("exclude")
+
+        if not date_str:
+            return Response({"error": "date is required"}, status=400)
+
+        try:
+            date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"error": "Invalid date format"}, status=400)
+
+        slots = generate_time_slots(
+            date,
+            exclude_appointment_id=exclude_id
+        )
+        return Response(slots)
+
 
     @action(detail=False, methods=["get"], url_path="week-slots")
     def week_slots(self, request):
-        """
-        GET /api/appointments/week-slots/
-        Returns slot availability for the next 7 days starting today.
-        """
 
         today = timezone.localdate()
         now = timezone.localtime()
@@ -238,15 +333,19 @@ If you did not request this change, please contact us immediately.
         results = []
 
         for i in range(7):
+
             day = today + timedelta(days=i)
 
             slots = generate_time_slots(day)
 
-            # filter past slots if today
             if day == today:
                 slots = [
                     s for s in slots
-                    if datetime.combine(day, datetime.strptime(s["time"], "%H:%M").time(), tzinfo=now.tzinfo) > now
+                    if datetime.combine(
+                        day,
+                        datetime.strptime(s["time"], "%H:%M").time(),
+                        tzinfo=now.tzinfo
+                    ) > now
                 ]
 
             results.append({

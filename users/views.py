@@ -102,13 +102,6 @@ def logout_view(request):
     logout(request)
     return JsonResponse({"detail": "Logged out"})
 
-from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.middleware.csrf import get_token
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer

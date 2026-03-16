@@ -54,6 +54,8 @@ class Invoice(models.Model):
         indexes = [
             models.Index(fields=['invoice_number']),
             models.Index(fields=['customer']),
+            models.Index(fields=["issue_date"]),
+            models.Index(fields=["paid"]),
         ]
 
     def days_until_due(self):

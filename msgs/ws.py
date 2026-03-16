@@ -1,13 +1,16 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import hashlib
+import os
+
+admin_email = os.getenv("REACT_APP_ADMIN_EMAIL")
 
 def safe_group(email):
     return "user_" + hashlib.sha256(email.lower().encode()).hexdigest()[:32]
 
 def push_message(message):
     channel = get_channel_layer()
-    group = safe_group("admin@system")   # All messages go to admins
+    group = safe_group(admin_email.lower())   # All messages go to admins
     # -> If multiple admins exist, we could instead loop & send to each user's safe_group
 
     async_to_sync(channel.group_send)(

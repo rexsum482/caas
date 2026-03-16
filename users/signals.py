@@ -2,7 +2,9 @@ from rest_framework.authtoken.models import Token
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .utils import send_verification_email
-from .models import CustomUser
+from django.contrib.auth import get_user_model
+
+CustomUser = get_user_model()
 
 @receiver(post_save, sender=CustomUser)
 def handle_user_creation(sender, instance, created, **kwargs):

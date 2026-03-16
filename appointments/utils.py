@@ -1,5 +1,17 @@
 from django.core.mail import send_mail
 from django.conf import settings
+from notifications.models import Notification
+
+def create_appointment_notification(appointment, rescheduled):
+    if rescheduled:
+        title = "Appointment rescheduled"
+    else:
+        title = "New Appointment Request"
+    Notification.create(
+        title=f"{title}",
+        content=f"{appointment.first_name} {appointment.last_name} requested an appointment for {appointment.requested_date} at {appointment.requested_time}.",
+        type="A"
+    )
 
 def appointment_message(appointment):
     reschedule_url = (

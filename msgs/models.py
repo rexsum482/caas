@@ -50,4 +50,3 @@ class Attachment(models.Model):
     def save(self, *args, **kwargs):
         # Custom save logic can be added here
         super().save(*args, **kwargs)   
-    

@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from customers.models import Customer
 import uuid
 
 User = get_user_model()
@@ -64,6 +65,14 @@ class Appointment(models.Model):
         ("D", "Declined"),
     ]
 
+
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="appointments"
+    )
     customer_first_name = models.CharField(max_length=50)
     customer_last_name = models.CharField(max_length=50)
     customer_email = models.EmailField()
@@ -163,13 +172,48 @@ class Appointment(models.Model):
     # Save override
     # ---------------------------------
     def save(self, *args, **kwargs):
-        """
-        Only auto-validate on normal saves.
-        Accept/decline should be done via methods.
-        """
+
+        creating = self.pk is None
+
         if "update_fields" not in kwargs:
             self.full_clean()
+
         super().save(*args, **kwargs)
+
+        if creating:
+            self._create_customer_and_invoice()
+
+    def _create_customer_and_invoice(self):
+
+        from customers.models import Customer
+        from invoices.models import Invoice
+        from django.utils import timezone
+
+        # Try to find existing customer by email
+        customer, created = Customer.objects.get_or_create(
+            email=self.customer_email,
+            defaults={
+                "first_name": self.customer_first_name,
+                "last_name": self.customer_last_name,
+                "street_address": self.customer_street_address,
+                "apt_suite": self.customer_apt_suite,
+                "city": self.customer_city,
+                "state": self.customer_state,
+                "zip_code": self.customer_zip_code,
+                "phone_number": self.customer_phone_number,
+            }
+        )
+
+        # Link appointment
+        if not self.customer:
+            self.customer = customer
+            super().save(update_fields=["customer"])
+
+        # Create placeholder invoice
+        Invoice.objects.create(
+            customer=customer,
+            due_date=timezone.now().date(),
+        )
 
 class BlackoutDate(models.Model): 
     date = models.DateField(unique=True)
