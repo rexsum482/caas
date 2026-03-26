@@ -1,4 +1,5 @@
 from django.db import models
+from companies.models import Company
 
 class Message(models.Model):
     sender = models.EmailField()
@@ -6,6 +7,13 @@ class Message(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="messages",
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f"Message from {self.sender} at {self.timestamp}"
@@ -50,3 +58,4 @@ class Attachment(models.Model):
     def save(self, *args, **kwargs):
         # Custom save logic can be added here
         super().save(*args, **kwargs)   
+    

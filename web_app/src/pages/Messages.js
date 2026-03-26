@@ -1,146 +1,165 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Table,
-  Typography,
-  Spin,
-  Layout,
-  message as AntMessage,
-  Input,
+  PageContainer,
+  ProTable,
+} from "@ant-design/pro-components";
+import {
   Badge,
+  Typography,
+  message,
   Switch,
+  Button,
+  Popconfirm,
   Space,
 } from "antd";
-import { PaperClipOutlined } from "@ant-design/icons";
+import {
+  PaperClipOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useNotifications } from "../context/NotificationContext";
 
-const { Title, Text } = Typography;
-const { Content } = Layout;
-const { Search } = Input;
+const { Text } = Typography;
 
 export default function Messages() {
-  const [messages, setMessages] = useState([]);
-  const [filteredMessages, setFilteredMessages] = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
   const navigate = useNavigate();
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const { markMessageRead } = useNotifications();
 
-  
   useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const response = await axios.get("/api/messages/", {
-          headers: {
-            Authorization: `Token ${localStorage.getItem("authToken")}`,
-          },
-        });
-
-        setMessages(response.data);
-        setFilteredMessages(response.data);
-      } catch (err) {
-        AntMessage.error("Failed to load messages");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMessages();
   }, []);
 
-  // 🔎 Filtering logic (search + unread toggle)
-  useEffect(() => {
-    let filtered = [...messages];
+  const fetchMessages = async () => {
+    try {
+      const res = await axios.get("/api/messages/", {
+        headers: {
+          Authorization: `Token ${localStorage.getItem("authToken")}`,
+        },
+      });
 
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(
-        (m) =>
-          m.sender.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          m.subject.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      setData(res.data);
+    } catch (err) {
+      message.error("Failed to load messages");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (showUnreadOnly) filtered = filtered.filter((m) => !m.read);
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`/api/messages/${id}/`, {
+        headers: {
+          Authorization: `Token ${localStorage.getItem("authToken")}`,
+        },
+      });
 
-    setFilteredMessages(filtered);
-  }, [messages, searchTerm, showUnreadOnly]);
+      setData((prev) => prev.filter((m) => m.id !== id));
+      message.success("Message deleted");
+    } catch (err) {
+      message.error("Failed to delete message");
+    }
+  };
 
-  const columns = useMemo(() => [
+  const filteredData = showUnreadOnly
+    ? data.filter((m) => !m.read)
+    : data;
+
+  const columns = [
     {
-      title: "Messages",
-      key: "info",
-      render: (record) => (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {/* 🔹 Blue dot if unread */}
+      title: "Message",
+      dataIndex: "subject",
+      render: (_, record) => (
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
             {!record.read && <Badge status="processing" />}
 
-            <Text strong>{record.sender}</Text> — <em>{record.subject}</em>
+            <Text strong>{record.sender}</Text>
+            <span>—</span>
+            <em>{record.subject}</em>
 
-            {/* 📎 Paperclip if attachments exist */}
             {record.attachments?.length > 0 && (
-              <PaperClipOutlined style={{ fontSize: 15 }} />
+              <PaperClipOutlined className="text-gray-500" />
             )}
-          </span>
+          </div>
 
-          <Text type="secondary" style={{ fontSize: 12, marginTop: 4 }}>
+          <Text type="secondary" className="text-xs mt-1">
             {new Date(record.timestamp).toLocaleString()}
           </Text>
         </div>
       ),
     },
-  ], []);
-
-  if (loading) {
-    return (
-      <div style={{ textAlign: "center", marginTop: 100 }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
+    {
+      title: "",
+      width: 60,
+      render: (_, record) => (
+        <Popconfirm
+          title="Delete this message?"
+          onConfirm={(e) => {
+            e?.stopPropagation();
+            handleDelete(record.id);
+          }}
+        >
+          <Button
+            danger
+            type="text"
+            icon={<DeleteOutlined />}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Popconfirm>
+      ),
+    },
+  ];
 
   return (
-    <Layout style={{ background: "#fff", padding: 24, minHeight: "100vh" }}>
-      <Content style={{ maxWidth: 900, margin: "0 auto" }}>
-        <Title level={2} style={{ marginBottom: 20 }}>Messages</Title>
-
-        {/* 🔎 Search & Filter Controls */}
-        <Space style={{ marginBottom: 16 }} wrap>
-          <Search
-            placeholder="Search sender or subject..."
-            allowClear
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: 260 }}
-          />
-          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Switch
-              checked={showUnreadOnly}
-              onChange={setShowUnreadOnly}
-            />
-            <Text>Show Unread Only</Text>
-          </span>
-        </Space>
-
-        <Table
-          dataSource={filteredMessages}
-          columns={columns}
+    <PageContainer>
+      <div className="max-w-4xl mx-auto">
+        <ProTable
           rowKey="id"
-          bordered
-          pagination={{ pageSize: 10 }}
+          columns={columns}
+          dataSource={filteredData}
+          loading={loading}
+          rowClassName="cursor-pointer"
           onRow={(record) => ({
-            onClick: () => navigate(`/message/${record.id}`),
+            onClick: () => {
+              if (!record.read) {
+                markMessageRead(record.id);
+              }
+              navigate(`/message/${record.id}`);
+            },
           })}
-          rowClassName={() => "cursor-pointer"}
-          style={{ background: "white", borderRadius: 8 }}
+          search={{
+            placeholder: "Search sender or subject...",
+            filterType: "light",
+          }}
+          toolBarRender={() => [
+            <Space key="filters">
+              <Switch
+                checked={showUnreadOnly}
+                onChange={setShowUnreadOnly}
+              />
+              <span className="text-sm">Unread Only</span>
+            </Space>,
+          ]}
+          pagination={{
+            pageSize: 10,
+          }}
+          options={{
+            density: true,
+            reload: fetchMessages,
+          }}
+          cardProps={{
+            className: "rounded-2xl shadow-md",
+          }}
+          locale={{
+            emptyText: "No messages found",
+          }}
         />
-      </Content>
-    </Layout>
+      </div>
+    </PageContainer>
   );
 }

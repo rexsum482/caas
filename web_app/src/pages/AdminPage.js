@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Typography, Spin } from "antd";
+import { Card, Row, Col, Typography, Spin, Alert } from "antd";
 import { Column } from "@ant-design/plots";
 
 const { Title, Text } = Typography;
@@ -7,6 +7,8 @@ const { Title, Text } = Typography;
 export default function AdminPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [animatedTotals, setAnimatedTotals] = useState({
     total: 0,
     month: 0,
@@ -30,8 +32,10 @@ export default function AdminPage() {
 
   const animateValue = (start, end, duration, setter, key) => {
     let startTimestamp = null;
+
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
+
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
       const value = progress * (end - start) + start;
 
@@ -39,33 +43,76 @@ export default function AdminPage() {
 
       if (progress < 1) window.requestAnimationFrame(step);
     };
+
     window.requestAnimationFrame(step);
   };
 
   useEffect(() => {
-    fetch("/api/dashboard/", {
-      headers: { Authorization: `Token ${localStorage.getItem("authToken")}` },
-    })
-      .then((res) => res.json())
-      .then((res) => {
-        res.revenue.revenue_last_12_months = res.revenue.revenue_last_12_months.map(
-          (i) => ({ month: i.month, total: Number(i.total) || 0 })
+    let mounted = true;
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch("/api/dashboard/", {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("authToken")}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to load dashboard");
+
+        const json = await res.json();
+
+        json.revenue.revenue_last_12_months =
+          json.revenue.revenue_last_12_months.map((i) => ({
+            month: i.month,
+            total: Number(i.total) || 0,
+          }));
+
+        json.revenue.total_revenue = Number(json.revenue.total_revenue) || 0;
+        json.revenue.revenue_this_month =
+          Number(json.revenue.revenue_this_month) || 0;
+
+        json.charts.upcoming_appointments =
+          json.charts.upcoming_appointments.map((i) => ({
+            date: i.requested_date,
+            count: Number(i.count) || 0,
+          }));
+
+        if (!mounted) return;
+
+        setData(json);
+
+        animateValue(
+          0,
+          json.revenue.total_revenue,
+          1200,
+          setAnimatedTotals,
+          "total"
         );
 
-        res.revenue.formatted_monthly_chart = res.revenue.formatted_monthly_chart.map(
-          (i) => ({ date: i.issue_date, total: Number(i.total) || 0, count: i.count })
+        animateValue(
+          0,
+          json.revenue.revenue_this_month,
+          1200,
+          setAnimatedTotals,
+          "month"
         );
-
-        res.revenue.total_revenue = Number(res.revenue.total_revenue) || 0;
-        res.revenue.revenue_this_month = Number(res.revenue.revenue_this_month) || 0;
-
-        setData(res);
-
-        animateValue(0, res.revenue.total_revenue, 1200, setAnimatedTotals, "total");
-        animateValue(0, res.revenue.revenue_this_month, 1200, setAnimatedTotals, "month");
 
         setLoading(false);
-      });
+      } catch (err) {
+        console.error(err);
+        if (mounted) {
+          setError(err.message);
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (loading)
@@ -75,32 +122,55 @@ export default function AdminPage() {
       </div>
     );
 
-  // ✅ Colorful animated bar chart for last 12 months
+  if (error)
+    return (
+      <Alert
+        type="error"
+        message="Dashboard Error"
+        description={error}
+        style={{ margin: 40 }}
+      />
+    );
+
   const monthlyRevenueConfig = {
     data: data.revenue.revenue_last_12_months,
     xField: "month",
     yField: "total",
-    color: ({ total }) => (total > 50000 ? "#52c41a" : "#1677ff"), // Conditional colors
+    color: ({ total }) => (total > 50000 ? "#52c41a" : "#1677ff"),
     columnWidthRatio: 0.6,
     autoFit: true,
     height: 320,
-    yAxis: { label: { formatter: (v) => formatCurrencyCompact(v) } },
-    tooltip: { formatter: (d) => ({ name: "Revenue", value: formatCurrency(d.total) }) },
-    animation: { appear: { animation: "scale-in-y", duration: 800 } },
+    yAxis: {
+      label: { formatter: (v) => formatCurrencyCompact(v) },
+    },
+    tooltip: {
+      formatter: (d) => ({
+        name: "Revenue",
+        value: formatCurrency(d.total),
+      }),
+    },
+    animation: {
+      appear: { animation: "scale-in-y", duration: 800 },
+    },
   };
 
-  // ✅ Colorful animated bar chart for invoice revenue this month
-  const invoiceChartConfig = {
-    data: data.revenue.formatted_monthly_chart,
+  const upcomingAppointmentsConfig = {
+    data: data.charts.upcoming_appointments,
     xField: "date",
-    yField: "total",
+    yField: "count",
     columnWidthRatio: 0.6,
     autoFit: true,
     height: 320,
-    color: ({ total }) => (total > 10000 ? "#fadb14" : "#fa541c"),
-    yAxis: { label: { formatter: (v) => formatCurrencyCompact(v) } },
-    tooltip: { formatter: (d) => ({ name: "Revenue", value: formatCurrency(d.total) }) },
-    animation: { appear: { animation: "scale-in-y", duration: 800 } },
+    color: "#722ed1",
+    tooltip: {
+      formatter: (d) => ({
+        name: "Appointments",
+        value: d.count,
+      }),
+    },
+    animation: {
+      appear: { animation: "scale-in-y", duration: 800 },
+    },
   };
 
   return (
@@ -109,7 +179,6 @@ export default function AdminPage() {
         📊 Dashboard Overview
       </Title>
 
-      {/* Animated Stat Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} sm={12} md={12} lg={6}>
           <Card>
@@ -134,8 +203,8 @@ export default function AdminPage() {
 
         <Col xs={24} sm={12} md={12} lg={6}>
           <Card>
-            <Text type="secondary">Appointments Next 7 Days</Text>
-            <Title level={3}>{data.counts.appointments_next_7_days}</Title>
+            <Text type="secondary">Appointments This Week</Text>
+            <Title level={3}>{data.counts.weekly_appointments}</Title>
           </Card>
         </Col>
       </Row>
@@ -144,8 +213,8 @@ export default function AdminPage() {
         <Column {...monthlyRevenueConfig} />
       </Card>
 
-      <Card title="💰 Invoice Revenue This Month">
-        <Column {...invoiceChartConfig} />
+      <Card title="📅 Upcoming Appointments">
+        <Column {...upcomingAppointmentsConfig} />
       </Card>
     </div>
   );

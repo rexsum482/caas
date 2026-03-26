@@ -2,11 +2,19 @@ from django.db import models, transaction
 from django.utils import timezone
 from decimal import Decimal
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper
+from companies.models import Company
 
 class Invoice(models.Model):
     invoice_number = models.CharField(
         max_length=20,
         unique=True,
+        blank=True
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="invoices",
+        null=True,
         blank=True
     )
     customer = models.ForeignKey('customers.Customer', on_delete=models.CASCADE)

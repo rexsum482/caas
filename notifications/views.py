@@ -5,8 +5,9 @@ from .pagination import NotificationPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
+from handyman.viewsets import CompanyScopedReadOnlyViewSet
 
-class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+class NotificationViewSet(CompanyScopedReadOnlyViewSet):
     serializer_class = NotificationSerializer
     authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]

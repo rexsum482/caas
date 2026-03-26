@@ -24,3 +24,9 @@ code {
   display: inline-flex;
   align-items: center;
 }
+
+.ant-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 196, 0.2) !important;
+  border: none;
+  border-radius: 12;
+}

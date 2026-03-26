@@ -5,12 +5,12 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-
+import { ProConfigProvider } from "@ant-design/pro-components";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Home from "./pages/Home";
 import { Layout, Spin } from "antd";
-
+import enUS from "antd/locale/en_US";
 import { WEBPAGE } from "./data/constants";
 import TopNavBar from "./components/Menu";
 import AdminPage from "./pages/AdminPage";
@@ -28,37 +28,46 @@ import { ConfigProvider } from "antd";
 import Messages from "./pages/Messages";
 import Message from "./pages/Message";
 import VerifyEmail from "./pages/VerifyEmail";
-import MyInvoices from "./pages/MyInvoices";
-import Products from "./pages/Products";
-import MyProducts from "./pages/MyProducts";
-
+import MyInvoices from "./pages/MyInvoices"; 
+import { NotificationProvider } from './context/NotificationContext';
+import Profile from "./pages/Profile";
+import { AppContext } from "./utils/appContext";
+import LandingPage from "./pages/LandingPage";
 
 const { Content } = Layout;
-const config = window.DJANGO_CONTEXT;
-
-const companyName = config.companyName;
-const primaryColor = config.primaryColor;
-const accentColor = config.accentColor;
-const alertColor = config.alertColor;
-const warningColor = config.warningColor;
-const successColor = config.successColor;
 
 function App() {
   return (
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: primaryColor,
-          colorError: alertColor,
-          colorWarning: warningColor,
-          colorSuccess: successColor,
-          colorHighlight: accentColor,
+          colorPrimary: AppContext.primaryColor,
+          colorError: AppContext.alertColor,
+          colorWarning: AppContext.warningColor,
+          colorSuccess: AppContext.successColor,
+          colorHighlight: AppContext.accentColor,
+        },
+        components: {
+          Card: {
+            boxShadow: "0 4px 12px rgba(0,0,180,0.3)",
+          },
+        },
+      }}
+      locale={enUS}
+    >
+    <ProConfigProvider
+      value={{
+        intl: {
+          locale: "en-US",
         },
       }}
     >
-    <Router>
-      <AppContentRouter />
-    </Router>
+      <Router>
+        <NotificationProvider>
+          <AppContentRouter />
+        </NotificationProvider>
+      </Router>
+    </ProConfigProvider>
     </ConfigProvider>
 );
 }
@@ -76,7 +85,7 @@ function AppContentRouter() {
       }
 
       try {
-        // 1️⃣ VERIFY token (POST /verify/)
+        // 1️ VERIFY token (POST /verify/)
         const verifyResponse = await fetch(`${WEBPAGE}/api/users/verify/`, {
           method: "POST",
           headers: { 
@@ -93,7 +102,7 @@ function AppContentRouter() {
           return;
         }
 
-        // 2️⃣ GET user info (/me/)
+        // 2️ GET user info (/me/)
         const meResponse = await fetch(`${WEBPAGE}/api/users/me/`, {
           method: "GET",
           headers: {
@@ -113,11 +122,11 @@ function AppContentRouter() {
         localStorage.setItem("user", JSON.stringify(userData));
 
         setIsAuthenticated(true);
-        if (userData.is_superuser) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+
+        const isOwner = userData.is_company_owner;
+        const isSuper = userData.is_superuser;
+
+        setIsAdmin(isOwner || isSuper);
       } catch (err) {
         console.error("Auth check error", err);
         localStorage.removeItem("authToken");
@@ -152,16 +161,31 @@ function AppContentRouter() {
 
 function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }) {
 
+  const hostname = window.location.hostname;
+  const parts = hostname.split(".");
+  const subdomain = parts.length > 2 ? parts[0] : null;
+
+  const isLandingPage = !subdomain || subdomain === "www";
+
   return (
     <>
-      <TopNavBar
-        isAuthenticated={isAuthenticated}
-        isAdmin={isAdmin}
-      />
+      {/* ✅ ONLY SHOW NAVBAR INSIDE COMPANY APP */}
+      {!isLandingPage && (
+        <TopNavBar
+          isAuthenticated={isAuthenticated}
+          isAdmin={isAdmin}
+        />
+      )}
 
       <Layout style={{ minHeight: "100vh" }}>
         <Content style={{ padding: "20px" }}>
           <Routes>
+
+            {/* 🔥 LANDING PAGE */}
+            {isLandingPage && (
+              <Route path="/" element={<LandingPage />} />
+            )}
+
             {/* HOME */}
             <Route
               path="/"
@@ -171,11 +195,17 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             {/* AUTH */}
             <Route
               path="/login"
-              element={isAuthenticated ? isAdmin ? <AdminPage /> : <Home /> : <Login setIsAuthenticated={setIsAuthenticated} />}
+              element={
+                isAuthenticated
+                  ? isAdmin
+                    ? <AdminPage />
+                    : <Home />
+                  : <Login setIsAuthenticated={setIsAuthenticated} />
+              }
             />
-            <Route path="/signup" element={isAuthenticated ? isAdmin ? <AdminPage /> : <Home /> : <Signup />} />
+
+            <Route path="/signup" element={isAuthenticated ? (isAdmin ? <AdminPage /> : <Home />) : <Signup />} />
             <Route path="/contact" element={<ContactUs />} />
-            {/* CUSTOMERS */}
             <Route path="/customers/add" element={<AddCustomer />} />
             <Route path="/customers/:id" element={<Customer />} />
             <Route path="/customers" element={<Customers />} />
@@ -186,20 +216,27 @@ function AppContent({ isAuthenticated, setIsAuthenticated, isAdmin, setIsAdmin }
             <Route path="/appointments" element={<Appointments />} />
             <Route path="/about" element={<About />} />
             <Route path="/messages" element={<Messages />} />
-            <Route path="/message/:id" element={<Message />} /> {/* detail view later */}
+            <Route path="/message/:id" element={<Message />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/myproducts" element={isAuthenticated && isAdmin ? <MyProducts /> : <Navigate to="/" />} />
+
             <Route
               path="/myinvoices"
               element={
-                isAuthenticated && !isAdmin ? (
-                  <MyInvoices />
-                ) : (
-                  <Navigate to="/" />
-                )
+                isAuthenticated && !isAdmin
+                  ? <MyInvoices />
+                  : <Navigate to="/" />
               }
             />
+
+            <Route
+              path="/profile"
+              element={
+                isAuthenticated
+                  ? <Profile />
+                  : <Navigate to="/" />
+              }
+            />
+
           </Routes>
         </Content>
       </Layout>

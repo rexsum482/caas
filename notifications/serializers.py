@@ -21,6 +21,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             "time_since",
             'type',
             "metadata",
+            "company",
         ]
 
     def get_time_since(self, obj):

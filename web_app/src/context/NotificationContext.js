@@ -1,11 +1,26 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useReducer
+} from "react";
+
 import api from "../components/axios";
 import { WEBSOCKET } from "../data/constants";
 import { notification } from "antd";
 import { MailOutlined, BellOutlined } from "@ant-design/icons";
 import sha256 from "crypto-js/sha256";
 
-function safeGroup(email){
+const NotificationContext = createContext();
+export const useNotifications = () => useContext(NotificationContext);
+
+/* --------------------------------------------------
+SAFE GROUP HASH
+-------------------------------------------------- */
+
+function safeGroup(email) {
+
   if (!email) {
     console.warn("⚠ safeGroup called with empty email");
     return null;
@@ -14,160 +29,367 @@ function safeGroup(email){
   const normalized = email.trim().toLowerCase();
   const fullHash = sha256(normalized).toString();
   const shortHash = fullHash.substring(0, 32);
-  const group = "user_" + shortHash;
 
-  console.log("🔍 FRONTEND HASH DEBUG");
-  console.log("Original email:", email);
-  console.log("Normalized:", normalized);
-  console.log("Full SHA256:", fullHash);
-  console.log("Short (32):", shortHash);
-  console.log("Final group:", group);
-
-  return group;
+  return "user_" + shortHash;
 }
 
-const NotificationContext = createContext();
-export const useNotifications = () => useContext(NotificationContext);
+/* --------------------------------------------------
+EVENT REDUCER
+Centralized realtime event processing
+-------------------------------------------------- */
+
+function eventReducer(state, event) {
+
+  switch (event.type) {
+
+    /* -------- Notification events -------- */
+
+    case "notification": {
+
+      const next = [event.payload, ...state.notifications];
+
+      return {
+        ...state,
+        notifications: next,
+        unread: next.filter(n => !n.is_read).length
+      };
+
+    }
+
+    case "notification_sync":
+
+      return {
+        ...state,
+        notifications: event.payload,
+        unread: event.payload.filter(n => !n.is_read).length
+      };
+
+
+    /* -------- Message events -------- */
+
+    case "message": {
+
+      const id = event.payload.id;
+
+      if (state.processed.has(id)) return state;
+
+      const processed = new Set(state.processed);
+      processed.add(id);
+
+      if (processed.size > 1000) processed.clear();
+
+      return {
+        ...state,
+        processed,
+        messageUnread: event.payload.read
+          ? state.messageUnread
+          : state.messageUnread + 1
+      };
+
+    }
+
+    case "message_sync":
+
+      return {
+        ...state,
+        messageUnread: event.payload
+      };
+
+    case "message_read":
+
+      return {
+        ...state,
+        messageUnread: Math.max(0, state.messageUnread - 1)
+      };
+
+    default:
+      return state;
+  }
+}
+
+/* --------------------------------------------------
+PROVIDER
+-------------------------------------------------- */
 
 export function NotificationProvider({ children }) {
-  const [notifications, setNotifications] = useState([]);
-  const [unread, setUnread] = useState(0);
+
+  const [state, dispatch] = useReducer(eventReducer, {
+    notifications: [],
+    unread: 0,
+    messageUnread: 0,
+    processed: new Set()
+  });
+
   const socketRef = useRef(null);
+
   const msgQueueRef = useRef([]);
   const timerRef = useRef(null);
-  const BATCH_TIME = 3500; // ms
-  // -------------------------
-  // Fetch helpers
-  // -------------------------
+
+  const BATCH_TIME = 3500;
+
+  /* --------------------------------------------------
+  API FETCH HELPERS
+  -------------------------------------------------- */
+
   const fetchNotifications = async () => {
+
     const res = await api.get("/notifications/");
     const list = res.data.results || [];
 
-    setNotifications(list);
-    setUnread(list.filter(n => !n.is_read).length);
+    dispatch({
+      type: "notification_sync",
+      payload: list
+    });
   };
 
   const fetchUnread = async () => {
-    const res = await api.get("/notifications/unread_count/");
-    setUnread(res.data.unread || 0);
+    await api.get("/notifications/unread_count/");
   };
 
+  const fetchMessageUnread = async () => {
+
+    const res = await api.get("/messages/unread-count/");
+
+    dispatch({
+      type: "message_sync",
+      payload: res.data.unread_count || 0
+    });
+  };
+
+  /* --------------------------------------------------
+  NOTIFICATION ACTIONS
+  -------------------------------------------------- */
+
   const markRead = async (id) => {
+
     await api.post(`/notifications/${id}/mark_read/`);
-    setUnread(u => Math.max(0, u - 1));
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
-    );
+
+    dispatch({
+      type: "notification_sync",
+      payload: state.notifications.map(n =>
+        n.id === id ? { ...n, is_read: true } : n
+      )
+    });
   };
 
   const markAllRead = async () => {
+
     await api.post("/notifications/mark_all_read/");
-    setUnread(0);
-    fetchNotifications();
+
+    dispatch({
+      type: "notification_sync",
+      payload: state.notifications.map(n => ({
+        ...n,
+        is_read: true
+      }))
+    });
   };
 
-  // -------------------------
-  // WebSocket listener
-  // -------------------------
-    useEffect(() => {
-    if (socketRef.current) return;
-    const token = localStorage.getItem("authToken");
-    const user = JSON.parse(localStorage.getItem("user"));   // we stored it already
-    if (!token || !user?.email) return;
+  /* --------------------------------------------------
+  MESSAGE ACTION
+  -------------------------------------------------- */
 
-    fetchUnread();
-    fetchNotifications();
+  const markMessageRead = () => {
+    dispatch({ type: "message_read" });
+  };
 
-    // connect to WS group for this user email
-    const group = safeGroup(user.email);
-    const wsUrl = `${WEBSOCKET}/ws/notifications/${group}/?token=${token}`;    
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
+  /* --------------------------------------------------
+  NOTIFICATION CLICK ROUTER
+  -------------------------------------------------- */
 
-    socket.onopen = () => console.log("🔗 WebSocket Connected:", user.email);
-    socket.onclose = () => console.log("❌ WebSocket Closed");
-    socket.onerror = (e) => console.log("⚠ WebSocket Error:", e);
+  const handleNotificationClick = (notif) => {
 
-socket.onmessage = (e) => {
-    const data = JSON.parse(e.data);
+    const meta = notif.metadata || {};
 
-    // -------- Notifications ------------
-    if(data.type==="notification"){
-        setNotifications(prev => {
-          const next = [data.payload, ...prev];
-          setUnread(next.filter(n => !n.is_read).length);
-          return next;
-        });
-        notification.open({
-          message:data.payload.title,
-          description:data.payload.content,
-          icon:<BellOutlined style={{color:"#1677ff"}} />,
-          onClick:()=>markRead(data.payload.id),
-        });
-        
+    markRead(notif.id);
+
+    /* Appointment notification */
+
+    if (notif.type === "A" && meta.appointment_id) {
+
+      const url = `/appointments?appointment=${meta.appointment_id}`;
+
+      if (window.location.pathname !== "/appointments") {
+        window.location.href = url;
+      }
+
+      return;
     }
 
-    // -------- Messages ------------------
-    if(data.type==="message"){
-      msgQueueRef.current.push(data.payload);
+    /* Invoice notification */
 
-      if (timerRef.current) clearTimeout(timerRef.current);
+    if (notif.type === "I" && meta.invoice_id) {
 
-      timerRef.current = setTimeout(() => {
-        const queue = msgQueueRef.current;
+      const url = `/invoices?invoice=${meta.invoice_id}`;
 
-        if (queue.length === 1) {
-          const m = queue[0];
-          notification.open({
-            message: "New Message",
-            icon: <MailOutlined style={{ color: "#1677ff" }} />,
-            description: <div><b>{m.sender}</b>: {m.subject}</div>,
-            onClick: () => {
-              if (window.location.pathname !== "/messages") {
-                window.location.href = "/messages";
+      if (window.location.pathname !== "/invoices") {
+        window.location.href = url;
+      }
+
+      return;
+    }
+
+  };
+
+  /* --------------------------------------------------
+  WEBSOCKET CONNECTION
+  -------------------------------------------------- */
+
+  useEffect(() => {
+
+    if (socketRef.current) return;
+
+    const token = localStorage.getItem("authToken");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!token || !user?.email) return;
+
+    fetchNotifications();
+    fetchUnread();
+    fetchMessageUnread();
+
+    const group = safeGroup(user.email);
+
+    const wsUrl =
+      `${WEBSOCKET}/ws/notifications/${group}/?token=${token}`;
+
+    const socket = new WebSocket(wsUrl);
+
+    socketRef.current = socket;
+
+    socket.onopen = () =>
+      console.log("🔗 WebSocket Connected:", user.email);
+
+    socket.onclose = () =>
+      console.log("❌ WebSocket Closed");
+
+    socket.onerror = (e) =>
+      console.log("⚠ WebSocket Error:", e);
+
+    /* --------------------------------------------------
+    WEBSOCKET MESSAGE HANDLER
+    -------------------------------------------------- */
+
+    socket.onmessage = (e) => {
+
+      const data = JSON.parse(e.data);
+
+      dispatch(data);
+
+      /* -------- Notification UI -------- */
+
+      if (data.type === "notification") {
+
+        const notif = data.payload;
+
+        notification.open({
+          message: notif.title,
+          description: notif.content,
+          icon: <BellOutlined style={{ color: "#1677ff" }} />,
+          onClick: () => handleNotificationClick(notif)
+        });
+
+      }
+
+      /* -------- Message UI -------- */
+
+      if (data.type === "message") {
+
+        const m = data.payload;
+
+        msgQueueRef.current.push(m);
+
+        if (timerRef.current)
+          clearTimeout(timerRef.current);
+
+        timerRef.current = setTimeout(() => {
+
+          const queue = msgQueueRef.current;
+
+          if (queue.length === 1) {
+
+            const msg = queue[0];
+
+            notification.open({
+              message: "New Message",
+              icon: <MailOutlined style={{ color: "#1677ff" }} />,
+              description:
+                <div>
+                  <b>{msg.sender}</b>: {msg.subject}
+                </div>,
+              onClick: () => {
+                if (window.location.pathname !== "/messages") {
+                  window.location.href = "/messages";
+                }
               }
-            }
-          });
-        } else {
-          notification.open({
-            message: `${queue.length} New Messages`,
-            description: queue.slice(0, 4).map((m, i) =>
-              <div key={i}>• <b>{m.sender}</b>: {m.subject}</div>
-            ),
-            onClick: () => {
-              if (window.location.pathname !== "/messages") {
-                window.location.href = "/messages";
-              }
-            }
-          });
-        }
+            });
 
-        msgQueueRef.current = [];
-        timerRef.current = null;
-      }, BATCH_TIME);
+          } else {
+
+            notification.open({
+              message: `${queue.length} New Messages`,
+              description: queue
+                .slice(0, 4)
+                .map((m, i) => (
+                  <div key={i}>
+                    • <b>{m.sender}</b>: {m.subject}
+                  </div>
+                )),
+              onClick: () => {
+                if (window.location.pathname !== "/messages") {
+                  window.location.href = "/messages";
+                }
+              }
+            });
+
           }
 
-};
+          msgQueueRef.current = [];
+          timerRef.current = null;
 
+        }, BATCH_TIME);
+      }
 
-return () => {
-  socket.onopen = null;
-  socket.onclose = null;
-  socket.onmessage = null;
-  socket.onerror = null;
-  socketRef.current = null;
-  socket.close();
-};
-    }, []);
+    };
+
+    return () => {
+
+      socket.onopen = null;
+      socket.onclose = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+
+      socketRef.current = null;
+
+      socket.close();
+    };
+
+  }, []);
+
+  /* --------------------------------------------------
+  PROVIDER VALUE
+  -------------------------------------------------- */
+
   return (
-    <NotificationContext.Provider value={{
-      notifications,
-      unread,
-      fetchNotifications,
-      markRead,
-      markAllRead
-    }}>
+
+    <NotificationContext.Provider
+      value={{
+        notifications: state.notifications,
+        unread: state.unread,
+        messageUnread: state.messageUnread,
+
+        fetchNotifications,
+        fetchMessageUnread,
+
+        markRead,
+        markAllRead,
+        markMessageRead
+      }}
+    >
+
       {children}
+
     </NotificationContext.Provider>
+
   );
 }

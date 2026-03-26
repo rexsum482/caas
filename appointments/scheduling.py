@@ -2,16 +2,17 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.conf import settings
 from .models import Appointment, BlackoutDate
+from companies.models import Company
 
 APPOINTMENT_DURATION = timedelta(hours=1)
 
-def generate_time_slots(date, exclude_appointment_id=None):
+def generate_time_slots(request, date, exclude_appointment_id=None):
     # 🚫 FULL DAY CLOSED
     if BlackoutDate.objects.filter(date=date).exists():
         return []
 
     weekday = date.weekday()
-    business_hours = settings.BUSINESS_HOURS_BY_WEEKDAY
+    business_hours = request.company.business_hours
 
     if weekday not in business_hours:
         return []

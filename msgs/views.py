@@ -1,3 +1,4 @@
+from handyman.viewsets import CompanyScopedViewSet
 from rest_framework import viewsets, parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -7,7 +8,7 @@ from .serializers import MessageSerializer, AttachmentSerializer
 from .permissions import AdminReadCustomerWrite
 from .ws import push_message
 
-class MessageViewSet(viewsets.ModelViewSet):
+class MessageViewSet(CompanyScopedViewSet):
     queryset = Message.objects.all().order_by('-timestamp')
     serializer_class = MessageSerializer
     authentication_classes = [TokenAuthentication]

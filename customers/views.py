@@ -7,8 +7,9 @@ from .serializers import (
     ShippingAddressSerializer,
     BillingAddressSerializer,
 )
+from handyman.viewsets import CompanyScopedViewSet
 
-class CustomerViewSet(viewsets.ModelViewSet):
+class CustomerViewSet(CompanyScopedViewSet):
     queryset = Customer.objects.all().order_by("-id")
     serializer_class = CustomerSerializer
     authentication_classes = [TokenAuthentication]

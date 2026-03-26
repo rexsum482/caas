@@ -2,6 +2,7 @@ from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from customers.models import Customer
+from companies.models import Company
 import uuid
 
 User = get_user_model()
@@ -65,6 +66,13 @@ class Appointment(models.Model):
         ("D", "Declined"),
     ]
 
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="appts",
+        null=True,
+        blank=True
+    )
 
     customer = models.ForeignKey(
         Customer,

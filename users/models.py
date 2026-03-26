@@ -3,7 +3,7 @@ from django.db import models
 import uuid
 from django.utils import timezone
 from datetime import timedelta
-
+from companies.models import Company, CompanyMembership
 
 class CustomUserManager(BaseUserManager):
 
@@ -67,7 +67,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     email_confirmed = models.BooleanField(default=False)
     last_active = models.CharField(default=".", max_length=512)
-
+    companies = models.ManyToManyField(
+        Company,
+        through="companies.CompanyMembership",
+        related_name="users",
+        blank=True
+    )
     objects = CustomUserManager()
 
     USERNAME_FIELD = "username"

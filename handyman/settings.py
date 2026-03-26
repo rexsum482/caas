@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     "carts.apps.CartConfig",
     'products',
     'orders',
+    'companies.apps.CompaniesConfig',
+    'django_filters',
     
 ]
 
@@ -107,6 +109,7 @@ USE_I18N = True
 USE_TZ = True
 STATIC_URL = 'static/'
 AUTH_USER_MODEL = "users.CustomUser"
+DEFAULT_AUTH_MODEL = AUTH_USER_MODEL
 
 AUTHENTICATION_BACKENDS = [
     "users.authentication.EmailOrUsernameBackend",

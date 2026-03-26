@@ -16,7 +16,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = [
             "id",
-
+            "company",
             # Customer info
             "customer_first_name",
             "customer_last_name",

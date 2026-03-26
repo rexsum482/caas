@@ -32,3 +32,4 @@ class CustomerSerializer(serializers.ModelSerializer):
             BillingAddress.objects.get_or_create(customer=customer,**address)
 
         return customer
+    

@@ -1,3 +1,15 @@
-const WEBPAGE = "http://192.168.1.223:8000";
-const WEBSOCKET = "ws://192.168.1.223:8001";
+const { protocol, hostname, port } = window.location;
+
+// 🌐 Build base origin (handles ports for local dev)
+const origin = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
+
+// 🔌 Determine WS protocol
+const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
+
+// 🔌 Build websocket URL
+const websocket = `${wsProtocol}//${hostname}${port ? `:${port}` : ""}`;
+
+const WEBPAGE = origin;
+const WEBSOCKET = websocket;
+
 export { WEBPAGE, WEBSOCKET };

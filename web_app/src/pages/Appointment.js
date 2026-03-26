@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../components/axios";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
+
 import {
   Card,
   Typography,
@@ -9,14 +11,19 @@ import {
   Select,
   Space,
   message,
+  Modal,
   Row,
   Col,
   Spin,
 } from "antd";
+import { getUserProfile } from "../utils/getUserProfile";
 
 const { Title, Text } = Typography;
 
 export default function PublicAppointmentScheduler() {
+
+  const navigate = useNavigate();
+
   const [weekDays, setWeekDays] = useState([]);
   const [slots, setSlots] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -37,9 +44,6 @@ export default function PublicAppointmentScheduler() {
     description: "",
   });
 
-  // ------------------------
-  // Load next 7 days
-  // ------------------------
   const loadWeek = async () => {
     try {
       const res = await api.get("/appointments/week-slots/");
@@ -53,29 +57,33 @@ export default function PublicAppointmentScheduler() {
     loadWeek();
   }, []);
 
-  // ------------------------
-  // Load slots for selected day
-  // ------------------------
+
   const loadSlots = async (date) => {
+
     setLoadingSlots(true);
 
     try {
+
       const res = await api.get("/appointments/available-slots/", {
         params: { date },
       });
 
       setSlots(res.data);
+
     } catch {
+
       message.error("Failed to load time slots");
+
     } finally {
+
       setLoadingSlots(false);
+
     }
   };
 
-  // ------------------------
-  // Build start/end ISO
-  // ------------------------
+
   const buildStartEnd = (date, time) => {
+
     const start = dayjs(`${date} ${time}`);
     const end = start.add(1, "hour");
 
@@ -83,12 +91,12 @@ export default function PublicAppointmentScheduler() {
       start: start.toISOString(),
       end: end.toISOString(),
     };
+
   };
 
-  // ------------------------
-  // Submit appointment
-  // ------------------------
+
   const submitAppointment = async () => {
+
     if (!selectedDate || !selectedTime) {
       return message.error("Please select a date and time");
     }
@@ -98,7 +106,7 @@ export default function PublicAppointmentScheduler() {
     setLoading(true);
 
     try {
-      // refresh slots before booking to avoid collision
+
       const fresh = await api.get("/appointments/available-slots/", {
         params: { date: selectedDate },
       });
@@ -124,25 +132,71 @@ export default function PublicAppointmentScheduler() {
 
       message.success("Appointment request submitted!");
 
-      setSelectedTime(null);
-      loadWeek();
+      navigate("/");
+
     } catch (err) {
-      message.error(err.response?.data?.detail || "Booking failed");
+
+      if (err.response?.status === 409) {
+
+        const rescheduleUrl = err.response.data.reschedule_url;
+
+        Modal.confirm({
+          title: "Appointment Already Exists",
+          content:
+            "You already have an appointment request. Would you like to reschedule it?",
+          okText: "Reschedule",
+          cancelText: "Cancel",
+          onOk() {
+            navigate(rescheduleUrl);
+          },
+        });
+
+      } else {
+
+        message.error(
+          err.response?.data?.detail || "Booking failed"
+        );
+
+      }
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
+  useEffect(() => {
+
+    const user = getUserProfile();
+
+    if (!user) return;
+
+    setForm((prev) => ({
+      ...prev,
+      customer_first_name: user.first_name || "",
+      customer_last_name: user.last_name || "",
+      customer_email: user.email || "",
+      customer_phone_number: user.phone_number || "",
+      customer_street_address: user.street_address || "",
+      customer_city: user.city || "",
+      customer_state: user.state || "TX",
+      customer_zip_code: user.zip_code || "",
+    }));
+
+  }, []);
+
   return (
     <Card style={{ maxWidth: 720, margin: "auto" }}>
-      <Title level={3}>Schedule an Appointment</Title>
 
-      {/* DAY PICKER */}
+      <Title level={3}>Schedule an Appointment</Title>
 
       <Text>Select a day:</Text>
 
       <Space wrap style={{ marginTop: 8 }}>
+
         {weekDays.map((d) => {
+
           const date = dayjs(d.date).format("YYYY-MM-DD");
 
           return (
@@ -160,9 +214,9 @@ export default function PublicAppointmentScheduler() {
             </Button>
           );
         })}
+
       </Space>
 
-      {/* SLOT PICKER */}
 
       {selectedDate && (
         <>
@@ -175,10 +229,11 @@ export default function PublicAppointmentScheduler() {
               <Spin />
             ) : (
               <Space wrap>
+
                 {slots.map((s) => {
+
                   const now = dayjs();
                   const slotTime = dayjs(`${selectedDate} ${s.time}`);
-
                   const past = slotTime.isBefore(now);
 
                   return (
@@ -196,20 +251,22 @@ export default function PublicAppointmentScheduler() {
                     </Button>
                   );
                 })}
+
               </Space>
             )}
           </div>
         </>
       )}
 
-      {/* CUSTOMER INFO */}
 
       <Title level={4} style={{ marginTop: 32 }}>
         Your Information
       </Title>
 
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+
         <Row gutter={16}>
+
           <Col span={12}>
             <Input
               placeholder="First Name"
@@ -235,9 +292,12 @@ export default function PublicAppointmentScheduler() {
               }
             />
           </Col>
+
         </Row>
 
+
         <Row gutter={16}>
+
           <Col span={12}>
             <Input
               placeholder="Email"
@@ -263,7 +323,9 @@ export default function PublicAppointmentScheduler() {
               }
             />
           </Col>
+
         </Row>
+
 
         <Input
           placeholder="Street Address"
@@ -287,7 +349,9 @@ export default function PublicAppointmentScheduler() {
           }
         />
 
+
         <Row gutter={16}>
+
           <Col span={10}>
             <Input
               placeholder="City"
@@ -337,7 +401,9 @@ export default function PublicAppointmentScheduler() {
               }
             />
           </Col>
+
         </Row>
+
 
         <Input.TextArea
           rows={4}
@@ -350,7 +416,9 @@ export default function PublicAppointmentScheduler() {
             })
           }
         />
+
       </Space>
+
 
       <Button
         type="primary"
@@ -362,6 +430,7 @@ export default function PublicAppointmentScheduler() {
       >
         Submit Appointment Request
       </Button>
+
     </Card>
   );
 }

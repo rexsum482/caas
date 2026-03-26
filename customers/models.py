@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from companies.models import Company
 
 class Customer(models.Model):
     STATE_CHOICES = [
@@ -55,6 +56,13 @@ class Customer(models.Model):
         ("WY", "Wyoming"),
 
     ]
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="customers",
+        null=True,
+        blank=True
+    )
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

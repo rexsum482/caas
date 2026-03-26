@@ -21,6 +21,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from .utils import send_verification_email
+from handyman.viewsets import CompanyScopedViewSet
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -102,7 +103,14 @@ def logout_view(request):
     logout(request)
     return JsonResponse({"detail": "Logged out"})
 
-class UserViewSet(viewsets.ModelViewSet):
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.middleware.csrf import get_token
+
+class UserViewSet(CompanyScopedViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -144,3 +152,14 @@ class UserViewSet(viewsets.ModelViewSet):
         instance.is_active = False
         instance.save(update_fields=["is_active"])
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["patch"])
+    def update_me(self, request):
+        serializer = self.get_serializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)

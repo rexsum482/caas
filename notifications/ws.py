@@ -2,6 +2,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import hashlib
 from .serializers import NotificationSerializer
+from django.conf import settings
 import os
 
 admin_email = os.getenv("REACT_APP_ADMIN_EMAIL")

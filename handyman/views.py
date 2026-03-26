@@ -49,7 +49,7 @@ class DashboardView(APIView):
         cache_key = "admin_dashboard_v2"
 
         # ===============================
-        # 1️⃣ CACHE FIRST (Ultra Fast Path)
+        # 1️ CACHE FIRST (Ultra Fast Path)
         # ===============================
         cached = cache.get(cache_key)
         if cached:
@@ -64,7 +64,7 @@ class DashboardView(APIView):
         start_month = current_month_start - relativedelta(months=11)
 
         # ============================================================
-        # 2️⃣ SINGLE AGGREGATE QUERY FOR ALL CORE INVOICE STATS
+        # 2️ SINGLE AGGREGATE QUERY FOR ALL CORE INVOICE STATS
         # ============================================================
         invoice_stats = Invoice.objects.aggregate(
             total_revenue=Sum("amount"),
@@ -85,7 +85,7 @@ class DashboardView(APIView):
         )
 
         # ============================================================
-        # 3️⃣ WEEKLY QUERYSETS (Evaluated Once)
+        # 3️ WEEKLY QUERYSETS (Evaluated Once)
         # ============================================================
         weekly_invoices_qs = Invoice.objects.filter(
             issue_date__range=[week_start, week_end]
@@ -110,7 +110,7 @@ class DashboardView(APIView):
             accepted="A"
         )
         # ============================================================
-        # 4️⃣ LAST 12 MONTHS REVENUE (Single Query + Python Fill)
+        # 4️ LAST 12 MONTHS REVENUE (Single Query + Python Fill)
         # ============================================================
         raw_revenue = (
             Invoice.objects
@@ -137,7 +137,7 @@ class DashboardView(APIView):
             month_cursor += relativedelta(months=1)
 
         # ============================================================
-        # 5️⃣ MONTHLY INVOICE DAILY BREAKDOWN (Full Month w/ Zero Fill)
+        # 5️ MONTHLY INVOICE DAILY BREAKDOWN (Full Month w/ Zero Fill)
         # ============================================================
 
         days_in_month = monthrange(today.year, today.month)[1]
@@ -179,7 +179,7 @@ class DashboardView(APIView):
             })
 
         # ============================================================
-        # 6️⃣ UPCOMING APPOINTMENTS (Next 30 Days)
+        # 6️ UPCOMING APPOINTMENTS (Next 30 Days)
         # ============================================================
         upcoming_appointments_chart = list(
             Appointment.objects
@@ -194,7 +194,7 @@ class DashboardView(APIView):
         )
 
         # ============================================================
-        # 7️⃣ BUILD RESPONSE (All Querysets Evaluated Once)
+        # 7️ BUILD RESPONSE (All Querysets Evaluated Once)
         # ============================================================
         response_data = {
             "week_range": {
@@ -232,8 +232,9 @@ class DashboardView(APIView):
         }
 
         # ============================================================
-        # 8️⃣ SMART SHORT-LIVED CACHE
+        # 8️ SMART SHORT-LIVED CACHE
         # ============================================================
         cache.set(cache_key, response_data, timeout=60)
 
         return Response(response_data)
+    

@@ -72,7 +72,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "parts", "labor",
             "customer_name","customer_city","customer_state", "customer_email",
             "tax_rate","discount",
-            "total_payments", "balance_due", "payments",
+            "total_payments", "balance_due", "payments", 'company'
         ]
         read_only_fields = [
             "id",
@@ -80,6 +80,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "issue_date",
             "parts",
             "labor",
+            "company"
         ]
 
     def get_total_payments(self, obj):

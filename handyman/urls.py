@@ -11,21 +11,19 @@ from customers.views import (
     ShippingAddressViewSet,
     BillingAddressViewSet
 )
+from handyman.api.dashboard.views import AdminDashboardView
 from appointments.views import AppointmentViewSet, public_reschedule
 from notifications.views import NotificationViewSet
 from reviews.views import GoogleReviewViewSet, ReviewStatsView
 from .views import DashboardView, CustomAuthToken
-from products.views import ProductViewSet
 from orders.views import CheckoutView, OrderViewSet
 from orders.webhooks import square_webhook
-from carts.views import CartViewSet
+from companies.views import CompanyViewSet, PublicCompanyViewSet
 
 router = DefaultRouter()
 router.register("users", UserViewSet, basename="user")
 router.register("messages", MessageViewSet, basename="message")
 router.register("attachments", AttachmentViewSet, basename="attachment")
-router.register("carts", CartViewSet, basename="cart")
-router.register("products", ProductViewSet, basename="product")
 router.register("invoices", InvoiceViewSet, basename="invoice")
 router.register("payments", PaymentViewSet, basename="payment")
 router.register("labor", LaborViewSet, basename="labor")
@@ -38,6 +36,8 @@ router.register("reviews", GoogleReviewViewSet, basename="review")
 router.register("shipping-addresses", ShippingAddressViewSet, basename="shipping-address")
 router.register("billing-addresses", BillingAddressViewSet, basename="billing-address")
 router.register("orders", OrderViewSet, basename="order")
+router.register("companies", CompanyViewSet, basename="company")
+router.register("public-companies", PublicCompanyViewSet, basename="public-company")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -57,7 +57,7 @@ urlpatterns = [
         resend_verification_email,
         name="resend-verification"
     ),
-    path("api/dashboard/", DashboardView.as_view(), name="dashboard"),
+    path("api/dashboard/", AdminDashboardView.as_view(), name="dashboard"),
     path("api/reviews/stats/", ReviewStatsView.as_view(), name="review-stats"),
     path("webhooks/square/", square_webhook),
     path("api/checkout/", CheckoutView.as_view(), name="checkout"),

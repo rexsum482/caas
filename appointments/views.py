@@ -10,11 +10,13 @@ from .pagination import AppointmentPagination
 from .permissions import IsAdminOrReadCreateOnly
 from .models import Appointment
 from .serializers import AppointmentSerializer, PublicAppointmentSerializer
-from .utils import send_appointment_email, send_mail
+from .utils import send_appointment_email, send_mail, create_appointment_notification
 from .scheduling import generate_time_slots
+from notifications.utils import send_realtime_notification
 from notifications.models import Notification
 from customers.models import Customer
 from invoices.models import Invoice
+from handyman.viewsets import CompanyScopedViewSet
 
 @api_view(["GET", "POST"])
 def public_reschedule(request, token):
@@ -77,7 +79,7 @@ def public_reschedule(request, token):
     return Response({"status": "rescheduled"})
 
 
-class AppointmentViewSet(viewsets.ModelViewSet):
+class AppointmentViewSet(CompanyScopedViewSet):
     queryset = Appointment.objects.all().order_by(
         "-requested_date", "-requested_time"
     )
@@ -336,7 +338,7 @@ If you did not request this change, please contact us immediately.
 
             day = today + timedelta(days=i)
 
-            slots = generate_time_slots(day)
+            slots = generate_time_slots(request, day)
 
             if day == today:
                 slots = [

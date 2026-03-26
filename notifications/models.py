@@ -4,6 +4,8 @@ from django.utils import timezone
 from datetime import timedelta
 from invoices.models import Invoice
 from django.contrib.auth import get_user_model
+from companies.models import Company
+
 User = get_user_model()
 class Notification(models.Model):
     TYPE_CHOICES = [
@@ -17,6 +19,13 @@ class Notification(models.Model):
         ("U", "Update"),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True
+    )
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
     title = models.CharField(max_length=255)
     content = models.TextField()
